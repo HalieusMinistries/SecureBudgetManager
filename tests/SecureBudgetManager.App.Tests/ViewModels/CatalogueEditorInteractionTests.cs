@@ -82,6 +82,24 @@ public sealed class CatalogueEditorInteractionTests
     }
 
     [Fact]
+    public async Task ProductClickSelectsWithoutOpening()
+    {
+        var (session, _, _) = SessionFactory.Open();
+        var vm = new ProductsViewModel(session, new FakeUserDialog(), TimeProvider.System);
+        vm.BeginAddCommand.Execute(null);
+        vm.ProductName = "Rolled oats";
+        vm.Category = "Dry goods";
+        await vm.SaveProductCommand.ExecuteAsync(null);
+
+        var row = Assert.Single(vm.Products);
+        vm.SelectProductCommand.Execute(row);
+
+        Assert.False(vm.IsEditorOpen);
+        Assert.True(Assert.Single(vm.Products).IsSelected);
+        Assert.Equal(row.Id, vm.SelectedRecordId);
+    }
+
+    [Fact]
     public async Task ProductEditAndDoubleClickOpenTheSelectedRecord()
     {
         var (session, _, _) = SessionFactory.Open();

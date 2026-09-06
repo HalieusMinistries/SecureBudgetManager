@@ -96,7 +96,7 @@
                         <Border Style="{StaticResource SelectableListRow}" Focusable="True" AutomationProperties.Name="{Binding Category}">
                             <Border.InputBindings>
                                 <MouseBinding MouseAction="LeftClick"
-                                              Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              Command="{Binding DataContext.SelectRecordCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                               CommandParameter="{Binding}"/>
                                 <MouseBinding MouseAction="LeftDoubleClick"
                                               Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"

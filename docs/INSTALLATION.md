@@ -13,14 +13,14 @@ powershell -File packaging\Build-Release.ps1
 Output:
 
 - Published files: `src\SecureBudgetManager.App\bin\Release\net8.0-windows\publish\win-x64\SecureBudgetManager.exe`
-- Installer (when Inno Setup 6 is installed): `dist\SecureBudgetManager-1.0.0-win-x64.exe`
-- Portable zip (when Inno Setup is not installed): `dist\SecureBudgetManager-1.0.0-win-x64.zip`
+- Installer (when Inno Setup 6 is installed): `dist\SecureBudgetManager-1.0.2-win-x64.exe`
+- Portable zip (when Inno Setup is not installed): `dist\SecureBudgetManager-1.0.2-win-x64.zip`
 
 ## Installer behaviour
 
 - Product name: Secure Budget Manager
 - Publisher: Secure Budget Manager
-- Version: 1.0.0
+- Version: 1.0.2
 - Upgrade code: `{8C3F0A61-2E47-4B9A-9D11-6A5F2C8E1B70}`
 - Start-menu shortcut is created
 - Desktop shortcut is optional
@@ -36,7 +36,7 @@ powershell -File packaging\Install-SecureBudgetManager.ps1 -DesktopShortcut
 
 ## Upgrade
 
-Installing 1.0.0 over an earlier copy of the same upgrade code replaces programme files and leaves the local household database in place. The programme opens the Dashboard and applies any pending schema migrations.
+Installing 1.0.2 over an earlier copy of the same upgrade code replaces programme files and leaves the local household database in place. The programme opens the Dashboard and applies any pending schema migrations.
 
 ## Isolated test profile
 

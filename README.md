@@ -4,7 +4,7 @@ Local-only Windows household finance software. Income, expenses and cash-flow fi
 
 The programme shows the real cost of a decision, not only the advertised payment. It does not give legal, tax, immigration or investment advice.
 
-**Version 1.0.0** — see [RELEASE_READINESS.md](RELEASE_READINESS.md) and [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
+**Version 1.0.2** — see [RELEASE_READINESS.md](RELEASE_READINESS.md) and [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md).
 
 ## What it does
 

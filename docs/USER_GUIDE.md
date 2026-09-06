@@ -28,7 +28,7 @@ Household figures stay in a local SQLite file on this computer. Anyone with acce
 
 ## Screenshots, CSV and backups
 
-Ctrl+S captures the current page as a PNG. CSV export writes a portable text file. Local database backups write a SQLite copy plus a hash manifest.
+Ctrl+S saves the open record editor. Escape cancels it. Ctrl+Shift+S captures the current page as a PNG. CSV export writes a portable text file. Local database backups write a SQLite copy plus a hash manifest.
 
 All three contain household financial information. Anyone with those files may read them. Store them only in a trusted location. None of them is encrypted.
 

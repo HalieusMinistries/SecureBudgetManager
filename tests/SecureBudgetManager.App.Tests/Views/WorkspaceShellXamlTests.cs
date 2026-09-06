@@ -30,13 +30,16 @@ public sealed class WorkspaceShellXamlTests
         Assert.Contains("GuidanceEditorForm", overlay, StringComparison.Ordinal);
         Assert.Contains("BeginAddCommand", products, StringComparison.Ordinal);
         Assert.Contains("BeginEditCommand", products, StringComparison.Ordinal);
+        Assert.Contains("SelectProductCommand", products, StringComparison.Ordinal);
         Assert.Contains("LeftDoubleClick", products, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding SaveProductCommand}\"", products, StringComparison.Ordinal);
         Assert.Contains("BeginAddCommand", planning, StringComparison.Ordinal);
         Assert.Contains("BeginEditCommand", planning, StringComparison.Ordinal);
+        Assert.Contains("SelectScenarioCommand", planning, StringComparison.Ordinal);
         Assert.DoesNotContain("True-cost car planner", planning, StringComparison.Ordinal);
         Assert.Contains("Save locality", guidance, StringComparison.Ordinal);
         Assert.Contains("BeginAddCommand", guidance, StringComparison.Ordinal);
+        Assert.Contains("SelectRecordCommand", guidance, StringComparison.Ordinal);
         Assert.DoesNotContain("Enter or edit a figure", guidance, StringComparison.Ordinal);
     }
 
