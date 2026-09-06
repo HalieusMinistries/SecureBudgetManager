@@ -1,6 +1,6 @@
 # Release readiness
 
-Version **1.0.2**. This table traces the supplied specification to the implemented programme. Interaction redesign through v1.0.2 uses the shared record overlay; household calculations and stored records are unchanged from 1.0.1 except where a user later saves an assignment, payment, reservation, transfer or assistance entry.
+Version **1.0.3**. This table traces the supplied specification to the implemented programme. v1.0.3 standardises overlay saving, adds a reviewable suggested starting budget, treats covered costs as zero household outflow, and orders navigation by setup dependency. Stored household records from 1.0.2 remain in place except where the household later saves an editor, suggestion or coverage change.
 
 | Requirement | Implementation | Screen | Domain/application service | Persistence | Automated test | Programmatic verification | Manual verification | Final status | Limitation or external blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
