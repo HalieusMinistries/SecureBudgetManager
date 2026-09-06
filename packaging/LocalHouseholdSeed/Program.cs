@@ -32,6 +32,8 @@ var databasePath = Path.Combine(liveRoot, LocalDataDirectory.DatabaseFileName);
 var vaultPath = Path.Combine(liveRoot, LocalDataDirectory.VaultMetadataFileName);
 var applyOperational = args.Any(argument =>
     string.Equals(argument, "--apply-operational", StringComparison.OrdinalIgnoreCase));
+var inspectOnly = args.Any(argument =>
+    string.Equals(argument, "--inspect", StringComparison.OrdinalIgnoreCase));
 var verifyOnly = args.Any(argument =>
     string.Equals(argument, "--verify-only", StringComparison.OrdinalIgnoreCase));
 var payloadOverride = args
@@ -104,7 +106,7 @@ if (File.Exists(vaultPath))
     return 2;
 }
 
-if (!applyOperational && !File.Exists(pendingPath))
+if (!applyOperational && !inspectOnly && !File.Exists(pendingPath))
 {
     Console.Error.WriteLine("No household payload was found.");
     return File.Exists(databasePath) && IsSqlite(databasePath) ? 0 : 2;
@@ -124,6 +126,12 @@ if (!integrity.IsHealthy)
 {
     Console.Error.WriteLine("New database failed integrity: " + integrity.Summary);
     return 2;
+}
+
+if (inspectOnly)
+{
+    var inspectRepository = new BudgetRepository(store, NullLogger<BudgetRepository>.Instance);
+    return ReportOperational(inspectRepository.Load(), DateOnly.FromDateTime(DateTime.Today), added: 0);
 }
 
 if (applyOperational)
@@ -305,7 +313,8 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
                 ExpectedAmount = new Money(58m),
                 DueDateUnknown = true,
                 ScheduleConfirmed = false,
-                Notes = JoinNotes(expense.Notes, "September paid at 58.00. Next amount and due date await confirmation.")
+                Assignment = BillAssignment.Unassigned,
+                Notes = JoinNotes(expense.Notes, "September paid at 58.00. October amount and due date unknown.")
             };
         }
 
@@ -318,7 +327,9 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
                 AnchorDueDate = new DateOnly(2026, 10, 1),
                 DueDateUnknown = false,
                 ScheduleConfirmed = true,
-                Necessity = ExpenseNecessity.Essential
+                Necessity = ExpenseNecessity.Essential,
+                Assignment = BillAssignment.Unassigned,
+                Notes = JoinNotes(expense.Notes, "Water, sewer and rubbish are included in rent.")
             };
         }
 
@@ -331,7 +342,8 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
                 AnchorDueDate = new DateOnly(2026, 10, 1),
                 DueDateUnknown = false,
                 ScheduleConfirmed = true,
-                Necessity = ExpenseNecessity.Essential
+                Necessity = ExpenseNecessity.Essential,
+                Assignment = BillAssignment.Unassigned
             };
         }
 
@@ -344,7 +356,9 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
                 DueDateUnknown = true,
                 ScheduleConfirmed = false,
                 Variability = ExpenseVariability.Variable,
-                Necessity = ExpenseNecessity.Essential
+                Necessity = ExpenseNecessity.Essential,
+                Assignment = BillAssignment.Unassigned,
+                Notes = JoinNotes(expense.Notes, "Bill expected around 15 September. Date not confirmed.")
             };
         }
 
@@ -355,22 +369,51 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
             {
                 ExpectedAmount = new Money(125m),
                 Frequency = Frequency.Monthly,
-                DueDateUnknown = true,
+                AnchorDueDate = new DateOnly(2026, 9, 23),
+                DueDateUnknown = false,
                 ScheduleConfirmed = false,
-                Variability = ExpenseVariability.Variable,
-                Necessity = ExpenseNecessity.Essential
+                Necessity = ExpenseNecessity.Essential,
+                Assignment = BillAssignment.Unassigned
             };
         }
 
         if (ContainsAny(expense.Name, "insurance") && expense.Frequency == Frequency.Fortnightly)
         {
-            return expense.ExpectedAmount == new Money(53m) && !expense.ScheduleConfirmed
+            return expense.ExpectedAmount == new Money(53m)
+                   && !expense.ScheduleConfirmed
+                   && expense.Assignment == BillAssignment.Unassigned
                 ? expense
-                : expense with { ExpectedAmount = new Money(53m), ScheduleConfirmed = false };
+                : expense with
+                {
+                    ExpectedAmount = new Money(53m),
+                    ScheduleConfirmed = false,
+                    Assignment = BillAssignment.Unassigned
+                };
         }
 
         return expense;
     }).ToList();
+
+    if (!expenses.Any(expense =>
+            ContainsAny(expense.Name, "natural gas", "gas bill", "gas utility")
+            || (ContainsAny(expense.Name, "gas") && expense.Category.Name == ExpenseCategory.Utilities.Name)))
+    {
+        expenses.Add(new ExpenseItem
+        {
+            Id = Guid.NewGuid(),
+            Name = "Gas (estimate)",
+            Category = ExpenseCategory.Utilities,
+            ExpectedAmount = new Money(125m),
+            Frequency = Frequency.Monthly,
+            AnchorDueDate = new DateOnly(2026, 9, 23),
+            DueDateUnknown = false,
+            ScheduleConfirmed = false,
+            Necessity = ExpenseNecessity.Essential,
+            Variability = ExpenseVariability.Variable,
+            Assignment = BillAssignment.Unassigned,
+            Notes = "Monthly estimate. Due 23 September 2026. Amount remains estimated."
+        });
+    }
 
     var internet = expenses.FirstOrDefault(expense => ContainsAny(expense.Name, "t-mobile", "internet", "wifi", "wi-fi"));
     var fuel = expenses.FirstOrDefault(expense => ContainsAny(expense.Name, "fuel", "petrol", "gas") && expense.Category.Name == ExpenseCategory.Transport.Name)
@@ -384,20 +427,40 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
         {
             return hourly with
             {
+                HourlyRate = new Money(22m),
+                WeeklyHours = new VariableHours(35m, 40m, 40m),
                 StartsOn = hourly.StartsOn ?? new DateOnly(2026, 9, 8),
                 AnchorPayDate = hourly.AnchorPayDate == default ? new DateOnly(2026, 9, 11) : hourly.AnchorPayDate
             };
         }
 
+        if (source is HourlyIncome second && source.PayFrequency.IsRecurring() && !source.PayScheduleConfirmed)
+        {
+            return second with
+            {
+                HourlyRate = new Money(16m),
+                WeeklyHours = new VariableHours(35m, 40m, 45m),
+                OvertimeMultiplier = 1.0m,
+                AnchorPayDate = new DateOnly(2026, 9, 15),
+                PayScheduleConfirmed = false,
+                Notes = JoinNotes(second.Notes, "Later recurring payday rule remains unconfirmed. First actual pay was 4 September 2026, brought forward from 7 September.")
+            };
+        }
+
         if (source.IsOneTimeIncome || ContainsAny(source.Name, "grifols", "plasma"))
         {
-            return source with { Role = IncomeRole.OneTime, PayFrequency = source.PayFrequency };
+            return source with
+            {
+                Role = IncomeRole.OneTime,
+                PayFrequency = Frequency.OneOff,
+                EndsOn = source.EndsOn ?? today,
+                Notes = JoinNotes(source.Notes, "One-time 80.00 received. No longer available. Not averaged into monthly wages.")
+            };
         }
 
         return source;
     }).ToList();
 
-    var originalTransactionCount = document.Transactions.Count;
     var existing = DeduplicateOperational(document.Transactions);
     var additions = new List<ExpenseTransaction>();
     AddIfMissing(existing, additions, today, "Fuel — essential transport", new Money(25m), ExpenseCategory.Transport, fuel?.Id, null, "Paid. Essential transport.");
@@ -450,11 +513,41 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
             Id = Guid.NewGuid(),
             SplitParentId = storePurchaseId,
             Date = today,
-            Description = "Combined sales or tobacco-related tax",
+            Description = "Receipt difference awaiting confirmation",
             Amount = new Money(1.46m),
             Category = ExpenseCategory.Personal,
             IsConfirmed = true,
-            Notes = "Difference between 15.00 paid and 13.54 pre-tax subtotal. Combined tax pending receipt confirmation. Not a invented split of the tax."
+            Notes = "Difference between 15.00 paid and 13.54 pre-tax subtotal. Awaiting the receipt. Not identified as tax."
+        });
+    }
+
+    existing = existing.Select(transaction =>
+        transaction.Amount == new Money(1.46m)
+        && !string.Equals(transaction.Description, "Receipt difference awaiting confirmation", StringComparison.Ordinal)
+            ? transaction with
+            {
+                Description = "Receipt difference awaiting confirmation",
+                Notes = JoinNotes(
+                    transaction.Notes,
+                    "Difference between 15.00 paid and 13.54 pre-tax subtotal. Awaiting the receipt. Not identified as tax.")
+            }
+            : transaction).ToList();
+
+    var payslips = document.Payslips.ToList();
+    var secondJob = income.OfType<HourlyIncome>().FirstOrDefault(source => !source.PayScheduleConfirmed);
+    if (secondJob is not null
+        && !payslips.Any(slip => slip.IncomeSourceId == secondJob.Id && slip.PayDate == new DateOnly(2026, 9, 4)))
+    {
+        payslips.Add(new Payslip
+        {
+            Id = Guid.NewGuid(),
+            IncomeSourceId = secondJob.Id,
+            PayDate = new DateOnly(2026, 9, 4),
+            GrossPay = new Money(124.00m),
+            SocialSecurity = new Money(7.69m),
+            Medicare = new Money(1.80m),
+            NonTaxableReimbursements = new Money(26.00m),
+            HoursWorked = 7.75m
         });
     }
 
@@ -463,14 +556,15 @@ static int ApplyOperationalActuals(SqliteBudgetStore store, DateOnly today)
         Accounts = accounts,
         Expenses = expenses,
         IncomeSources = income,
-        Transactions = existing.Concat(additions).ToList()
+        Transactions = existing.Concat(additions).ToList(),
+        Payslips = payslips
     };
     updated.Validate();
-    var changed = additions.Count > 0
-                  || existing.Count != originalTransactionCount
-                  || document.Accounts.Zip(updated.Accounts, (left, right) => !Equals(left, right)).Any(item => item)
-                  || document.Expenses.Zip(updated.Expenses, (left, right) => !Equals(left, right)).Any(item => item)
-                  || document.IncomeSources.Zip(updated.IncomeSources, (left, right) => !Equals(left, right)).Any(item => item);
+    var changed = !document.Accounts.SequenceEqual(updated.Accounts)
+                  || !document.Expenses.SequenceEqual(updated.Expenses)
+                  || !document.IncomeSources.SequenceEqual(updated.IncomeSources)
+                  || !document.Transactions.SequenceEqual(updated.Transactions)
+                  || !document.Payslips.SequenceEqual(updated.Payslips);
     if (changed)
     {
         repository.Save(updated);
@@ -522,11 +616,63 @@ static int ReportOperational(BudgetDocument document, DateOnly today, int added)
     Console.WriteLine("HarmedObligation=" + position.HarmedObligation);
     Console.WriteLine("RegisterRequired=" + register.TotalRequired.ToDisplayString());
     Console.WriteLine("RegisterPaidReservedStill=" + paidReservedStill.ToDisplayString());
+    Console.WriteLine("CombinedForecastLabel=" + position.CombinedForecastLabel);
+    Console.WriteLine("People=");
+    foreach (var person in position.People)
+    {
+        Console.WriteLine(
+            "  " + person.Name
+            + " next=" + person.NextIncomeText
+            + " first=" + person.FirstDepositText
+            + " gross=" + person.GrossForecast.ToDisplayString()
+            + " taxes=" + person.Taxes.ToDisplayString()
+            + " deductions=" + person.Deductions.ToDisplayString()
+            + " take-home=" + person.TakeHome.ToDisplayString()
+            + " personal-safe=" + person.SafeToSpend.ToDisplayString());
+    }
+
+    Console.WriteLine("Unassigned=");
+    foreach (var item in position.UnassignedObligations)
+    {
+        Console.WriteLine("  " + item);
+    }
+
+    Console.WriteLine("RegisterLines=");
+    foreach (var line in register.Lines.OrderBy(item => item.DueDate ?? DateOnly.MaxValue).ThenBy(item => item.Name))
+    {
+        Console.WriteLine(
+            "  " + line.Name
+            + " required=" + line.AmountRequired.ToDisplayString()
+            + " paid=" + line.AmountPaid.ToDisplayString()
+            + " reserved=" + line.AmountReserved.ToDisplayString()
+            + " still=" + line.StillRequired.ToDisplayString()
+            + " due=" + (line.DueDate?.ToString("yyyy-MM-dd") ?? "unknown")
+            + " owner=" + line.Owner
+            + " status=" + line.StatusText);
+    }
+
     Console.WriteLine("BillsBeforeIncome=");
     foreach (var item in position.BillsRequiringAttention)
     {
         Console.WriteLine("  " + item);
     }
+
+    var receipt = document.Transactions.FirstOrDefault(transaction =>
+        transaction.Amount == new Money(1.46m) && ContainsAny(transaction.Description, "receipt difference"));
+    var grifols = document.IncomeSources.FirstOrDefault(source =>
+        source.IsOneTimeIncome || ContainsAny(source.Name, "grifols", "plasma"));
+    var firstPayslip = document.Payslips.FirstOrDefault(item => item.PayDate == new DateOnly(2026, 9, 4));
+    Console.WriteLine("ReceiptDifference=" + (receipt?.Description ?? "missing") + " " + (receipt?.Amount.ToDisplayString() ?? ""));
+    Console.WriteLine("GrifolsRole=" + (grifols?.Role.ToString() ?? "missing") + " ends=" + (grifols?.EndsOn?.ToString("yyyy-MM-dd") ?? "none"));
+    Console.WriteLine(
+        "FirstPayslip=" + (firstPayslip is null
+            ? "missing"
+            : firstPayslip.PayDate.ToString("yyyy-MM-dd")
+              + " gross=" + firstPayslip.GrossPay.ToDisplayString()
+              + " tax=" + firstPayslip.TotalWithholding.ToDisplayString()
+              + " wage-net=" + (firstPayslip.GrossPay - firstPayslip.TotalWithholding).Round().ToDisplayString()
+              + " reimbursement=" + firstPayslip.NonTaxableReimbursements.ToDisplayString()
+              + " deposit=" + firstPayslip.NetPay.ToDisplayString()));
 
     var ok = position.AvailableNow.IsZero
              && position.SafeToSpend.IsZero
@@ -581,7 +727,7 @@ static IReadOnlyList<ExpenseTransaction> DeduplicateOperational(IReadOnlyList<Ex
     RemoveExtra(keep, amount => amount == new Money(15m), description => ContainsAny(description, "cigarettes") && ContainsAny(description, "beer"));
     RemoveExtra(keep, amount => amount == new Money(6.09m), description => ContainsAny(description, "cigarettes before tax"));
     RemoveExtra(keep, amount => amount == new Money(7.45m), description => ContainsAny(description, "beer before tax"));
-    RemoveExtra(keep, amount => amount == new Money(1.46m), description => ContainsAny(description, "tobacco-related tax"));
+    RemoveExtra(keep, amount => amount == new Money(1.46m), description => ContainsAny(description, "receipt difference"));
     return keep;
 }
 
@@ -604,5 +750,14 @@ static void RemoveExtra(
 static bool ContainsAny(string value, params string[] tokens) =>
     tokens.Any(token => value.Contains(token, StringComparison.OrdinalIgnoreCase));
 
-static string JoinNotes(string? existing, string extra) =>
-    string.IsNullOrWhiteSpace(existing) ? extra : existing.Trim() + " " + extra;
+static string JoinNotes(string? existing, string extra)
+{
+    if (string.IsNullOrWhiteSpace(existing))
+    {
+        return extra;
+    }
+
+    return existing.Contains(extra, StringComparison.OrdinalIgnoreCase)
+        ? existing.Trim()
+        : existing.Trim() + " " + extra;
+}

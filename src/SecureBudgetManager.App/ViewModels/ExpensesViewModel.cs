@@ -321,13 +321,10 @@ public sealed partial class ExpensesViewModel : PageViewModel
             ?? ExpenseCategory.Custom(EditorCategory);
 
         var ownership = EditorOwnerId is null ? Ownership.Shared : Ownership.Individual;
+        var assignment = EditorOwnerId is null ? BillAssignment.Unassigned : BillAssignment.MemberPaysAll;
         SplitRule? split = EditorOwnerId is { } owner
             ? SplitRule.SoleResponsibility(owner)
-            : Adults().Length >= 2
-                ? SplitRule.Even(Adults())
-                : Adults().Length == 1
-                    ? SplitRule.SoleResponsibility(Adults()[0])
-                    : null;
+            : null;
 
         try
         {
@@ -344,6 +341,11 @@ public sealed partial class ExpensesViewModel : PageViewModel
                 Necessity = EditorNecessity,
                 Variability = EditorVariability,
                 Ownership = ownership,
+                Assignment = existing is { } current
+                             && current.Ownership == ownership
+                             && current.Assignment is not BillAssignment.Unassigned
+                    ? current.Assignment
+                    : assignment,
                 Split = existing is { Split: not null } && ownership == existing.Ownership
                     ? existing.Split
                     : split,

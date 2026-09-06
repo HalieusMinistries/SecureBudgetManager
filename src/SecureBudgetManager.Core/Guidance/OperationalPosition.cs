@@ -1,4 +1,5 @@
 using SecureBudgetManager.Core.Budgeting;
+using SecureBudgetManager.Core.Household;
 using SecureBudgetManager.Core.Income;
 using SecureBudgetManager.Core.Models;
 using SecureBudgetManager.Core.Storage;
@@ -44,9 +45,58 @@ public sealed record OperationalPosition
 
     public required IReadOnlyList<string> DeductionNotes { get; init; }
 
+    public required IReadOnlyList<PersonOperationalPosition> People { get; init; }
+
+    public required IReadOnlyList<string> UnassignedObligations { get; init; }
+
+    public required Money UnassignedStillRequired { get; init; }
+
+    public required Money HouseholdAvailableNow { get; init; }
+
+    public required Money HouseholdSafeToSpend { get; init; }
+
+    public required string CombinedForecastLabel { get; init; }
+
     public bool FurtherSpendingIsUnsafe => AvailableNow.IsZero || SafeToSpend.IsZero;
 
     public bool ForecastIsNotSpendable => true;
+}
+
+public sealed record PersonOperationalPosition
+{
+    public required Guid MemberId { get; init; }
+
+    public required string Name { get; init; }
+
+    public required Money AvailableNow { get; init; }
+
+    public required Money SafeToSpend { get; init; }
+
+    public required Money AssignedBillsBeforeNextIncome { get; init; }
+
+    public DateOnly? NextConfirmedIncomeDate { get; init; }
+
+    public required string NextIncomeText { get; init; }
+
+    public required string FirstDepositText { get; init; }
+
+    public required IReadOnlyList<string> BillsBeforeIncome { get; init; }
+
+    public required Money GrossForecast { get; init; }
+
+    public required Money Taxes { get; init; }
+
+    public required Money Deductions { get; init; }
+
+    public required Money TakeHome { get; init; }
+
+    public required Money RemainingPersonalBalance { get; init; }
+
+    public string AvailableNowText => AvailableNow.ToDisplayString();
+
+    public string SafeToSpendText => SafeToSpend.ToDisplayString();
+
+    public string TakeHomeText => TakeHome.ToDisplayString();
 }
 
 public static class OperationalPositionCalculator
@@ -110,6 +160,25 @@ public static class OperationalPositionCalculator
             .Where(line => line.RequiresAttentionBefore(nextIncome?.Date))
             .Select(line => line.AttentionText)
             .ToList();
+        var unassigned = register.Lines.Where(line => line.IsUnassigned && line.StillRequired > Money.Zero).ToList();
+        var accounts = BillAssignmentPlanner.AccountBalances(document);
+        var householdRequired = Money.Sum(register.Lines
+            .Where(line =>
+            {
+                var expense = document.Expenses.FirstOrDefault(item => item.Id == line.Id);
+                return expense is { Assignment: BillAssignment.SharedAccount };
+            })
+            .Select(line => line.StillRequired)).Round()
+            + allocation.EssentialGroceries
+            + allocation.SafetyBuffer;
+        var householdSafe = accounts.Household.IsZero
+            ? Money.Zero
+            : Money.Max(Money.Zero, (accounts.Household - householdRequired).Round());
+
+        var people = document.Members
+            .Where(member => !member.IsDependant && !member.IsArchived)
+            .Select(member => BuildPerson(document, allocation, register, accounts, member, today))
+            .ToList();
 
         return new OperationalPosition
         {
@@ -132,7 +201,13 @@ public static class OperationalPositionCalculator
                 ? "No dated essential obligation is currently marked as harmed by further spending."
                 : $"{harmed.Name} would be harmed by further spending. {harmed.StillRequired.ToDisplayString()} is still required.",
             BillsRequiringAttention = attention,
-            DeductionNotes = takeHome.Attention.Select(item => item.Message).ToList()
+            DeductionNotes = takeHome.Attention.Select(item => item.Message).ToList(),
+            People = people,
+            UnassignedObligations = unassigned.Select(line => line.AttentionText).ToList(),
+            UnassignedStillRequired = Money.Sum(unassigned.Select(line => line.StillRequired)).Round(),
+            HouseholdAvailableNow = accounts.Household,
+            HouseholdSafeToSpend = householdSafe,
+            CombinedForecastLabel = BillAssignmentPlanner.CombinedForecastLabel
         };
     }
 
@@ -142,13 +217,104 @@ public static class OperationalPositionCalculator
     {
         ArgumentNullException.ThrowIfNull(document);
 
+        return NextConfirmedIncomeFor(document, today, memberId: null);
+    }
+
+    public static (IncomeSource Source, DateOnly Date)? NextConfirmedIncomeFor(
+        BudgetDocument document,
+        DateOnly today,
+        Guid? memberId)
+    {
+        ArgumentNullException.ThrowIfNull(document);
+
         return document.IncomeSources
             .Where(source => source.IsActive)
+            .Where(source => memberId is null || source.MemberId == memberId)
             .SelectMany(source => source.PayDates(today.AddDays(1), today.AddYears(1))
                 .Select(date => (Source: source, Date: date)))
             .OrderBy(item => item.Date)
             .Select(item => ((IncomeSource Source, DateOnly Date)?)item)
             .FirstOrDefault();
+    }
+
+    private static PersonOperationalPosition BuildPerson(
+        BudgetDocument document,
+        PaychequeAllocation allocation,
+        ObligationRegister register,
+        AccountBuckets accounts,
+        HouseholdMember member,
+        DateOnly today)
+    {
+        var next = NextConfirmedIncomeFor(document, today, member.Id);
+        var earner = allocation.For(member.Id);
+        var personalAvailable = accounts.Personal.TryGetValue(member.Id, out var owned)
+            ? owned
+            : Money.Zero;
+        var assignedBefore = Money.Sum(register.Lines
+            .Where(line => line.StillRequired > Money.Zero)
+            .Where(line =>
+            {
+                var expense = document.Expenses.FirstOrDefault(item => item.Id == line.Id);
+                if (expense is null || BillAssignmentPlanner.IsUnassigned(expense))
+                {
+                    return false;
+                }
+
+                if (next?.Date is { } payday && line.DueDate is { } due && due >= payday)
+                {
+                    return false;
+                }
+
+                return BillAssignmentPlanner.Shares(expense, line.StillRequired).ContainsKey(member.Id);
+            })
+            .Select(line =>
+            {
+                var expense = document.Expenses.First(item => item.Id == line.Id);
+                return BillAssignmentPlanner.Shares(expense, line.StillRequired)
+                    .TryGetValue(member.Id, out var share)
+                    ? share
+                    : Money.Zero;
+            })).Round();
+        var personalSafe = personalAvailable.IsZero
+            ? Money.Zero
+            : Money.Max(Money.Zero, (personalAvailable - assignedBefore).Round());
+        var bills = register.Lines
+            .Where(line => line.StillRequired > Money.Zero)
+            .Where(line =>
+            {
+                var expense = document.Expenses.FirstOrDefault(item => item.Id == line.Id);
+                return expense is not null
+                       && !BillAssignmentPlanner.IsUnassigned(expense)
+                       && BillAssignmentPlanner.Shares(expense, line.StillRequired).ContainsKey(member.Id)
+                       && (next?.Date is not { } payday || line.DueDate is null || line.DueDate < payday);
+            })
+            .Select(line => line.AttentionText)
+            .ToList();
+
+        var nextText = next is null
+            ? $"No confirmed income date is recorded for {member.Name}."
+            : $"{next.Value.Source.Name} on {next.Value.Date:yyyy-MM-dd}.";
+        var firstDeposit = next is null
+            ? "No deposit is recorded."
+            : BillAssignmentPlanner.FirstDepositExplanation(next.Value.Source, next.Value.Date, document.Payslips);
+
+        return new PersonOperationalPosition
+        {
+            MemberId = member.Id,
+            Name = member.Name,
+            AvailableNow = personalAvailable,
+            SafeToSpend = personalSafe,
+            AssignedBillsBeforeNextIncome = assignedBefore,
+            NextConfirmedIncomeDate = next?.Date,
+            NextIncomeText = nextText,
+            FirstDepositText = firstDeposit,
+            BillsBeforeIncome = bills,
+            GrossForecast = earner?.Income.GrossIncome ?? Money.Zero,
+            Taxes = earner?.Income.Taxes ?? Money.Zero,
+            Deductions = earner?.Income.PayrollDeductions ?? Money.Zero,
+            TakeHome = earner?.Income.UsableNetIncome ?? Money.Zero,
+            RemainingPersonalBalance = earner?.RemainingPersonalBalance ?? Money.Zero
+        };
     }
 }
 
@@ -202,11 +368,14 @@ public static class IncomeOccurrence
             return true;
         }
 
-        if (OpeningPeriodIsShorterThanAFullPayPeriod(source, payDate))
+        if (!source.PayScheduleConfirmed
+            || OpeningPeriodIsShorterThanAFullPayPeriod(source, payDate)
+            || source.Role == IncomeRole.OneTime
+            || !source.PayFrequency.IsRecurring())
         {
             return false;
         }
 
-        return source.PayFrequency.IsRecurring() && source.Role != IncomeRole.OneTime;
+        return true;
     }
 }

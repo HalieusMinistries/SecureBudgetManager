@@ -48,6 +48,39 @@
                 </StackPanel>
             </Border>
 
+            <ItemsControl ItemsSource="{Binding People}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource CardTitle}" Text="{Binding Name}"/>
+                                <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding NextIncomeText}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding FirstDepositText}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                    <Run Text="Personal available "/><Run Text="{Binding AvailableNowText, Mode=OneWay}"/>
+                                    <Run Text=" · safe to spend "/><Run Text="{Binding SafeToSpendText, Mode=OneWay}"/>
+                                    <Run Text=" · take-home forecast "/><Run Text="{Binding TakeHomeText, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasUnassignedObligations, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Unassigned household obligations"/>
+                    <ItemsControl ItemsSource="{Binding UnassignedObligations}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
             <UniformGrid Columns="2">
                 <Border Style="{StaticResource Card}" Margin="0,0,8,16">
                     <StackPanel>
@@ -96,7 +129,7 @@
                 </Border>
                 <Border Style="{StaticResource Card}" Margin="8,0,0,16">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource MetricLabel}" Text="{Binding Overview.NetCashFlow.Label}"/>
+                        <TextBlock Style="{StaticResource MetricLabel}" Text="{Binding CombinedForecastLabel}"/>
                         <TextBlock Style="{StaticResource MetricValue}" Text="{Binding Overview.NetCashFlow.Text}"/>
                         <TextBlock Style="{StaticResource EstimatedBadge}"
                                    Text="Estimated"

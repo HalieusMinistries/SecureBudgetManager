@@ -234,7 +234,8 @@ public static class HouseholdImportMerger
                     && left.DueDateUnknown == right.DueDateUnknown
                     && left.Necessity == right.Necessity
                     && left.Variability == right.Variability
-                    && left.ScheduleConfirmed == right.ScheduleConfirmed)
+                    && left.ScheduleConfirmed == right.ScheduleConfirmed
+                    && left.Assignment == right.Assignment)
                 {
                     return left;
                 }

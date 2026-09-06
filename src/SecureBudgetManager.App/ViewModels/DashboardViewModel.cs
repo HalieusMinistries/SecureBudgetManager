@@ -54,6 +54,15 @@ public sealed partial class DashboardViewModel : PageViewModel
     [ObservableProperty]
     private string spendingSafetyNotice = string.Empty;
 
+    [ObservableProperty]
+    private string combinedForecastLabel = string.Empty;
+
+    public IReadOnlyList<PersonOperationalPosition> People { get; private set; } = [];
+
+    public IReadOnlyList<string> UnassignedObligations { get; private set; } = [];
+
+    public bool HasUnassignedObligations => UnassignedObligations.Count > 0;
+
     public IReadOnlyList<AttentionItem> Attention => Overview.Attention;
 
     public bool HasAttention => Overview.HasAttention;
@@ -83,9 +92,15 @@ public sealed partial class DashboardViewModel : PageViewModel
             SafeToSpendNowText = string.Empty;
             NextIncomeText = string.Empty;
             SpendingSafetyNotice = string.Empty;
+            CombinedForecastLabel = string.Empty;
+            People = [];
+            UnassignedObligations = [];
             OnPropertyChanged(nameof(Attention));
             OnPropertyChanged(nameof(HasAttention));
             OnPropertyChanged(nameof(IsUnlocked));
+            OnPropertyChanged(nameof(People));
+            OnPropertyChanged(nameof(UnassignedObligations));
+            OnPropertyChanged(nameof(HasUnassignedObligations));
             return;
         }
 
@@ -97,8 +112,14 @@ public sealed partial class DashboardViewModel : PageViewModel
         SafeToSpendNowText = position.SafeToSpend.ToDisplayString();
         NextIncomeText = position.NextIncomeText;
         SpendingSafetyNotice = position.SafetyNotice;
+        CombinedForecastLabel = position.CombinedForecastLabel;
+        People = position.People;
+        UnassignedObligations = position.UnassignedObligations;
         OnPropertyChanged(nameof(Attention));
         OnPropertyChanged(nameof(HasAttention));
         OnPropertyChanged(nameof(IsUnlocked));
+        OnPropertyChanged(nameof(People));
+        OnPropertyChanged(nameof(UnassignedObligations));
+        OnPropertyChanged(nameof(HasUnassignedObligations));
     }
 }

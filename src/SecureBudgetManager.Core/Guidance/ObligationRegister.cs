@@ -41,6 +41,18 @@ public sealed record ObligationRegisterLine
 
     public required string AttentionText { get; init; }
 
+    public required string Category { get; init; }
+
+    public required string Priority { get; init; }
+
+    public required string Frequency { get; init; }
+
+    public required int PaydaysRemaining { get; init; }
+
+    public required string Consequence { get; init; }
+
+    public required bool IsUnassigned { get; init; }
+
     public bool RequiresAttentionBefore(DateOnly? nextIncomeDate)
     {
         if (StillRequired.IsZero)
@@ -107,6 +119,7 @@ public sealed record ObligationRegister
                 paid,
                 planned.AlreadyReserved,
                 planned.RequiredFromThisPaycheque,
+                planned.PaydaysRemaining,
                 dueDateUnknown: false,
                 amountEstimated: false,
                 awaitingConfirmation: false));
@@ -120,7 +133,9 @@ public sealed record ObligationRegister
                 continue;
             }
 
-            if (!ReservationPlanner.IsDatedObligation(expense) && !expense.DueDateUnknown)
+            if (!ReservationPlanner.IsDatedObligation(expense)
+                && !expense.DueDateUnknown
+                && expense.Variability != ExpenseVariability.Variable)
             {
                 continue;
             }
@@ -139,6 +154,7 @@ public sealed record ObligationRegister
                 paid,
                 reserved,
                 Money.Max(Money.Zero, (expense.ExpectedAmount - paid - reserved).Round()),
+                paydaysRemaining: 0,
                 expense.DueDateUnknown,
                 expense.Variability == ExpenseVariability.Variable,
                 !expense.ScheduleConfirmed));
@@ -165,6 +181,7 @@ public sealed record ObligationRegister
                 Money.Zero,
                 reserved,
                 Money.Max(Money.Zero, (debt.MinimumPayment - reserved).Round()),
+                paydaysRemaining: 0,
                 dueDateUnknown: debt.DueDayOfMonth is null,
                 amountEstimated: false,
                 awaitingConfirmation: false));
@@ -191,12 +208,22 @@ public sealed record ObligationRegister
         Money paid,
         Money reserved,
         Money requiredFromNext,
+        int paydaysRemaining,
         bool dueDateUnknown,
         bool amountEstimated,
         bool awaitingConfirmation)
     {
         var still = Money.Max(Money.Zero, (required - paid - reserved).Round());
+        var expense = document.Expenses.FirstOrDefault(item => item.Id == id);
+        var debt = document.Debts.FirstOrDefault(item => item.Id == id);
+        var isUnassigned = expense is not null
+            ? BillAssignmentPlanner.IsUnassigned(expense)
+            : debt is { OwnerMemberId: null };
         var statuses = new List<string>();
+        if (isUnassigned && still > Money.Zero)
+        {
+            statuses.Add("Unassigned");
+        }
 
         if (paid >= required && required > Money.Zero)
         {
@@ -246,11 +273,22 @@ public sealed record ObligationRegister
             statuses.Add(still.IsZero ? "Paid" : "Not funded");
         }
 
-        var owner = OwnerName(document, id, kind);
+        var owner = expense is not null
+            ? BillAssignmentPlanner.Describe(expense, document)
+            : isUnassigned
+                ? "Unassigned"
+                : OwnerName(document, id, kind);
         var classification = essential ? "Essential" : "Discretionary";
         var dueText = dueDateUnknown || dueDate is null
             ? "Date unknown"
             : dueDate.Value.ToString("yyyy-MM-dd");
+        var consequence = still.IsZero
+            ? "Nothing further is required."
+            : isUnassigned
+                ? "Nobody has agreed to pay this yet. It remains a visible household shortfall and is not taken from either person."
+                : essential
+                    ? "If this is not funded, this essential obligation is the one harmed by further spending."
+                    : "If this is not funded, the named discretionary envelope is short.";
 
         return new ObligationRegisterLine
         {
@@ -271,7 +309,13 @@ public sealed record ObligationRegister
             IsEssential = essential,
             AttentionText = still.IsZero
                 ? $"{name}: paid or reserved in full."
-                : $"{name}: {still.ToDisplayString()} still required by {dueText}."
+                : $"{name}: {still.ToDisplayString()} still required by {dueText}. {owner}.",
+            Category = expense?.Category.Name ?? (kind == ObligationKind.Debt ? "Debt payments" : "Other"),
+            Priority = essential ? "Essential" : "Discretionary",
+            Frequency = expense?.Frequency.ToDisplayName() ?? "Monthly",
+            PaydaysRemaining = paydaysRemaining,
+            Consequence = consequence,
+            IsUnassigned = isUnassigned
         };
     }
 

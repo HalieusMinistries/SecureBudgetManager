@@ -477,8 +477,8 @@ public static class TakeHomeCalculator
             {
                 attention.Add(new AttentionItem(
                     $"{benefit.Name} of {benefit.EmployeePremiumPerPeriod.ToDisplayString()} per " +
-                    $"{benefit.PremiumFrequency.ToDisplayName()} is awaiting effective-date confirmation " +
-                    "and is excluded from this take-home forecast."));
+                    $"{benefit.PremiumFrequency.ToDisplayName()} is awaiting payslip confirmation " +
+                    "and is included in this forecast scenario."));
             }
 
             if (!TaxYearLibrary.TryGetYear(profile.TaxYear, out var table, out _) || table is null)
@@ -545,12 +545,7 @@ public static class TakeHomeCalculator
 
         foreach (var benefit in benefits.Where(plan => plan.MemberId == memberId))
         {
-            if (!benefit.IsConfirmed)
-            {
-                continue;
-            }
-
-            if (today is not null && !benefit.AppliesOn(today.Value))
+            if (today is not null && benefit.IsConfirmed && !benefit.AppliesOn(today.Value))
             {
                 continue;
             }

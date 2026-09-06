@@ -213,7 +213,8 @@ public static class EarnerIncomeCalculator
             net = result.NetPay;
 
             benefitDeductions = Money.Sum(document.Benefits
-                .Where(benefit => benefit.MemberId == member.Id && benefit.AppliesOn(today))
+                .Where(benefit => benefit.MemberId == member.Id)
+                .Where(benefit => !benefit.IsConfirmed || benefit.AppliesOn(today))
                 .Select(benefit => FrequencyConverter.Convert(
                     benefit.EmployeePremiumPerPeriod,
                     benefit.PremiumFrequency,
@@ -225,8 +226,8 @@ public static class EarnerIncomeCalculator
             {
                 missing.Add(
                     $"{pending.Name} of {pending.EmployeePremiumPerPeriod.ToDisplayString()} per " +
-                    $"{pending.PremiumFrequency.ToDisplayName()} is awaiting effective-date confirmation " +
-                    "and is excluded from this take-home figure.");
+                    $"{pending.PremiumFrequency.ToDisplayName()} is awaiting payslip confirmation " +
+                    "and is included in this forecast scenario.");
             }
 
             payrollDeductions = Money.Max(
@@ -357,24 +358,28 @@ public static class EarnerIncomeCalculator
     {
         var total = Money.Zero;
 
-        foreach (var expense in document.Expenses.Where(item => item.Ownership == Ownership.Individual))
+        foreach (var expense in document.Expenses.Where(item => !item.IsPaused && !item.IsArchived))
         {
-            if (expense.IsPaused || !expense.Frequency.IsRecurring())
+            if (BillAssignmentPlanner.IsUnassigned(expense)
+                || expense.Assignment == BillAssignment.SharedAccount
+                || !expense.Frequency.IsRecurring())
             {
                 continue;
             }
 
-            var participants = expense.Split?.Participants ?? [];
-
-            if (participants.Count == 1 && participants[0] == member.Id)
+            var converted = FrequencyConverter.Convert(expense.ExpectedAmount, expense.Frequency, payFrequency);
+            var shares = BillAssignmentPlanner.Shares(expense, converted);
+            if (shares.TryGetValue(member.Id, out var share))
             {
-                total += FrequencyConverter.Convert(expense.ExpectedAmount, expense.Frequency, payFrequency);
+                total += share;
             }
-            else if (participants.Count == 0)
+            else if (expense.Assignment == BillAssignment.MemberPaysAll
+                     && expense.Ownership == Ownership.Individual
+                     && (expense.Split?.Participants.Count ?? 0) == 0)
             {
                 missing.Add(
                     $"\"{expense.Name}\" is marked as an individual cost but nobody is recorded as " +
-                    "responsible for it, so it is being treated as a shared household cost.");
+                    "responsible for it, so it remains unassigned.");
             }
         }
 

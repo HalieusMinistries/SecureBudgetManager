@@ -29,6 +29,10 @@ public sealed record PersonRow(
     string Allowance,
     string SpendingUsed,
     string RemainingBalance,
+    string SafeToSpend,
+    string NextIncome,
+    string FirstDeposit,
+    string BillsBeforeIncome,
     string Basis,
     string Explanation);
 
@@ -110,6 +114,18 @@ public sealed partial class ThisWeekViewModel : PageViewModel
     private string essentialUnfundedText = string.Empty;
 
     [ObservableProperty]
+    private string householdAvailableText = string.Empty;
+
+    [ObservableProperty]
+    private string householdSafeToSpendText = string.Empty;
+
+    [ObservableProperty]
+    private string combinedForecastLabel = string.Empty;
+
+    [ObservableProperty]
+    private string unassignedTotalText = string.Empty;
+
+    [ObservableProperty]
     private string essentialsExplanation = string.Empty;
 
     [ObservableProperty]
@@ -159,6 +175,10 @@ public sealed partial class ThisWeekViewModel : PageViewModel
     public IReadOnlyList<string> MissingInformation { get; private set; } = [];
 
     public IReadOnlyList<string> BillsRequiringAttention { get; private set; } = [];
+
+    public IReadOnlyList<string> UnassignedObligations { get; private set; } = [];
+
+    public bool HasUnassignedObligations => UnassignedObligations.Count > 0;
 
     public bool HasShortfall => Shortfalls.Count > 0 || !string.IsNullOrEmpty(ShortfallHeadline);
 
@@ -215,7 +235,12 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         NextIncomeText = position.NextIncomeText;
         BillsBeforeIncomeText = position.BillsDueBeforeNextIncome.ToDisplayString();
         ForecastSurplusText =
-            $"Forecast monthly surplus {position.ForecastMonthlySurplus.ToDisplayString()} — future, not available today.";
+            $"{position.CombinedForecastLabel} Forecast monthly surplus {position.ForecastMonthlySurplus.ToDisplayString()} — future, not available today.";
+        CombinedForecastLabel = position.CombinedForecastLabel;
+        HouseholdAvailableText = position.HouseholdAvailableNow.ToDisplayString();
+        HouseholdSafeToSpendText = position.HouseholdSafeToSpend.ToDisplayString();
+        UnassignedTotalText = position.UnassignedStillRequired.ToDisplayString();
+        UnassignedObligations = position.UnassignedObligations;
         SpendingSafetyNotice = position.SafetyNotice;
         HarmedObligationText = position.HarmedObligation;
         BillsRequiringAttention = position.BillsRequiringAttention;
@@ -294,27 +319,35 @@ public sealed partial class ThisWeekViewModel : PageViewModel
                 item.Explanation.FinancialEffect))
             .ToList();
 
-        People = allocation.Earners
-            .Select(earner => new PersonRow(
-                earner.MemberName,
-                earner.Income.GrossIncome.ToDisplayString(),
-                earner.Income.Taxes.ToDisplayString(),
-                earner.Income.PayrollDeductions.ToDisplayString(),
-                earner.Income.BenefitDeductions.ToDisplayString(),
-                earner.Income.UsableNetIncome.ToDisplayString(),
-                $"{earner.ContributionPercent:0.##}%",
-                earner.ShareOfSharedObligations.ToDisplayString(),
-                earner.Income.IndividualObligations.ToDisplayString(),
-                earner.SavingsContribution.ToDisplayString(),
-                earner.Income.IsDiscretionaryEligible
-                    ? earner.DiscretionaryAllowance.ToDisplayString()
-                    : "Not eligible",
-                earner.PersonalSpendingUsed.ToDisplayString(),
-                earner.Income.IsDiscretionaryEligible
-                    ? earner.RemainingPersonalBalance.ToDisplayString()
-                    : "—",
-                earner.Income.Basis,
-                earner.Explanation))
+        People = position.People
+            .Select(person =>
+            {
+                var earner = allocation.For(person.MemberId);
+                return new PersonRow(
+                    person.Name,
+                    person.GrossForecast.ToDisplayString(),
+                    person.Taxes.ToDisplayString(),
+                    person.Deductions.ToDisplayString(),
+                    earner?.Income.BenefitDeductions.ToDisplayString() ?? Money.Zero.ToDisplayString(),
+                    person.TakeHome.ToDisplayString(),
+                    earner is null ? "0%" : $"{earner.ContributionPercent:0.##}%",
+                    earner?.ShareOfSharedObligations.ToDisplayString() ?? Money.Zero.ToDisplayString(),
+                    earner?.Income.IndividualObligations.ToDisplayString() ?? Money.Zero.ToDisplayString(),
+                    earner?.SavingsContribution.ToDisplayString() ?? Money.Zero.ToDisplayString(),
+                    earner?.Income.IsDiscretionaryEligible == true
+                        ? earner.DiscretionaryAllowance.ToDisplayString()
+                        : "Not eligible",
+                    earner?.PersonalSpendingUsed.ToDisplayString() ?? Money.Zero.ToDisplayString(),
+                    person.RemainingPersonalBalance.ToDisplayString(),
+                    person.SafeToSpend.ToDisplayString(),
+                    person.NextIncomeText,
+                    person.FirstDepositText,
+                    person.BillsBeforeIncome.Count == 0
+                        ? "No assigned bills due before this person's next income."
+                        : string.Join(" ", person.BillsBeforeIncome),
+                    earner?.Income.Basis ?? "No income recorded",
+                    earner?.Explanation ?? person.FirstDepositText);
+            })
             .ToList();
 
         Shortfalls = allocation.Shortfall is { } shortfall
@@ -357,6 +390,11 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         Warnings = [];
         MissingInformation = [];
         BillsRequiringAttention = [];
+        UnassignedObligations = [];
+        HouseholdAvailableText = string.Empty;
+        HouseholdSafeToSpendText = string.Empty;
+        CombinedForecastLabel = string.Empty;
+        UnassignedTotalText = string.Empty;
 
         AvailableNowText = string.Empty;
         ReservedText = string.Empty;
@@ -402,6 +440,8 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         OnPropertyChanged(nameof(Warnings));
         OnPropertyChanged(nameof(MissingInformation));
         OnPropertyChanged(nameof(BillsRequiringAttention));
+        OnPropertyChanged(nameof(UnassignedObligations));
+        OnPropertyChanged(nameof(HasUnassignedObligations));
         OnPropertyChanged(nameof(HasShortfall));
         OnPropertyChanged(nameof(HasWarnings));
         OnPropertyChanged(nameof(HasMissingInformation));

@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SecureBudgetManager.App.Services;
+using SecureBudgetManager.Core.Expenses;
 using SecureBudgetManager.Core.Guidance;
 using SecureBudgetManager.Core.Household;
 using SecureBudgetManager.Core.Models;
@@ -14,15 +15,21 @@ public sealed record ReservationRow(
     string Name,
     string Owner,
     string Classification,
+    string Category,
+    string Priority,
+    string Frequency,
     string DueDate,
     string AmountDue,
     string AmountPaid,
     string AlreadyReserved,
     string StillRequired,
     string RequiredNow,
+    string PaydaysRemaining,
     string Status,
     string Tier,
-    string Explanation);
+    string Consequence,
+    string Explanation,
+    bool IsUnassigned);
 
 public sealed record SplitRow(
     string Name,
@@ -115,6 +122,31 @@ public sealed partial class AllocationsViewModel : PageViewModel
     [ObservableProperty]
     private string? errorMessage;
 
+    [ObservableProperty]
+    private BillAssignment editorAssignment = BillAssignment.Unassigned;
+
+    [ObservableProperty]
+    private HouseholdMember? editorPayer;
+
+    [ObservableProperty]
+    private string editorFirstShare = "50";
+
+    [ObservableProperty]
+    private string editorSecondShare = "50";
+
+    [ObservableProperty]
+    private string assignmentPreview = string.Empty;
+
+    public IReadOnlyList<ChoiceOption<BillAssignment>> AssignmentOptions { get; } =
+    [
+        new(BillAssignment.Unassigned, "Unassigned"),
+        new(BillAssignment.MemberPaysAll, "One person pays all"),
+        new(BillAssignment.PercentageSplit, "Percentage split"),
+        new(BillAssignment.FixedDollarSplit, "Fixed dollar split"),
+        new(BillAssignment.EnteredContributions, "Separate entered contributions"),
+        new(BillAssignment.SharedAccount, "Shared account pays")
+    ];
+
     public IReadOnlyList<ReservationRow> Reservations { get; private set; } = [];
 
     public IReadOnlyList<SplitRow> Shares { get; private set; } = [];
@@ -174,6 +206,168 @@ public sealed partial class AllocationsViewModel : PageViewModel
         StatusMessage = await _session.SaveAsync(cancellationToken)
             ? $"{amount.ToDisplayString()} recorded against {selected.Name}."
             : _session.LastError ?? "The reserve could not be saved.";
+    }
+
+    [RelayCommand]
+    private void PreviewAssignment()
+    {
+        if (!_session.IsOpen || SelectedReservation is null)
+        {
+            AssignmentPreview = "Select a bill first.";
+            return;
+        }
+
+        if (!TryBuildAssignment(out var assignment, out var split, out var error))
+        {
+            AssignmentPreview = error;
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+        var preview = BillAssignmentPlanner.Preview(
+            _session.Document,
+            today,
+            SelectedReservation.ObligationId,
+            assignment,
+            split);
+        AssignmentPreview =
+            preview.Summary + Environment.NewLine +
+            string.Join(
+                Environment.NewLine,
+                preview.People.Select(person =>
+                    $"{person.Name}: {person.Before.ToDisplayString()} now, {person.After.ToDisplayString()} after " +
+                    $"({person.Change.ToDisplayString()}).")) +
+            Environment.NewLine +
+            $"Unassigned household total {preview.UnassignedBefore.ToDisplayString()} → {preview.UnassignedAfter.ToDisplayString()}." +
+            Environment.NewLine +
+            preview.Risk;
+    }
+
+    [RelayCommand]
+    private async Task SaveAssignmentAsync(CancellationToken cancellationToken)
+    {
+        if (!_session.IsOpen || SelectedReservation is null)
+        {
+            ErrorMessage = "Select a bill first.";
+            return;
+        }
+
+        if (!TryBuildAssignment(out var assignment, out var split, out var error))
+        {
+            ErrorMessage = error;
+            return;
+        }
+
+        PreviewAssignment();
+        if (!_dialog.Confirm(
+                "Save bill assignment",
+                (string.IsNullOrWhiteSpace(AssignmentPreview)
+                    ? "Save this assignment?"
+                    : AssignmentPreview) +
+                Environment.NewLine +
+                "Unassigned bills are not deducted from either person."))
+        {
+            return;
+        }
+
+        var document = _session.Document;
+        var expenses = document.Expenses.Select(expense =>
+            expense.Id == SelectedReservation.ObligationId
+                ? BillAssignmentPlanner.Apply(expense, assignment, split)
+                : expense).ToList();
+
+        if (!_session.TryReplace(document with { Expenses = expenses }, out var replaceError))
+        {
+            ErrorMessage = replaceError;
+            return;
+        }
+
+        ErrorMessage = null;
+        StatusMessage = await _session.SaveAsync(cancellationToken)
+            ? $"{SelectedReservation.Name} assignment saved."
+            : _session.LastError ?? "The assignment could not be saved.";
+    }
+
+    private bool TryBuildAssignment(out BillAssignment assignment, out SplitRule? split, out string error)
+    {
+        assignment = EditorAssignment;
+        split = null;
+        error = string.Empty;
+        var adults = Members.Where(member => !member.IsDependant).ToList();
+
+        switch (assignment)
+        {
+            case BillAssignment.Unassigned:
+            case BillAssignment.SharedAccount:
+                return true;
+
+            case BillAssignment.MemberPaysAll:
+                if (EditorPayer is null)
+                {
+                    error = "Choose who pays this bill.";
+                    return false;
+                }
+
+                split = SplitRule.SoleResponsibility(EditorPayer.Id);
+                return true;
+
+            case BillAssignment.PercentageSplit:
+                if (adults.Count < 2
+                    || !decimal.TryParse(EditorFirstShare, out var firstPercent)
+                    || !decimal.TryParse(EditorSecondShare, out var secondPercent))
+                {
+                    error = "Enter a percentage for each adult.";
+                    return false;
+                }
+
+                split = new SplitRule
+                {
+                    Method = SplitMethod.Percentage,
+                    Participants = [adults[0].Id, adults[1].Id],
+                    Percentages = [firstPercent, secondPercent]
+                };
+                try
+                {
+                    split.Validate();
+                    return true;
+                }
+                catch (ArgumentException exception)
+                {
+                    error = exception.Message;
+                    return false;
+                }
+
+            case BillAssignment.FixedDollarSplit:
+            case BillAssignment.EnteredContributions:
+                if (adults.Count < 2
+                    || !AmountParsing.TryParseMoney(EditorFirstShare, out var firstAmount)
+                    || !AmountParsing.TryParseMoney(EditorSecondShare, out var secondAmount))
+                {
+                    error = "Enter each person's contribution.";
+                    return false;
+                }
+
+                split = new SplitRule
+                {
+                    Method = SplitMethod.FixedAmount,
+                    Participants = [adults[0].Id, adults[1].Id],
+                    FixedAmounts = [firstAmount, secondAmount]
+                };
+                try
+                {
+                    split.Validate();
+                    return true;
+                }
+                catch (ArgumentException exception)
+                {
+                    error = exception.Message;
+                    return false;
+                }
+
+            default:
+                error = "Choose an assignment.";
+                return false;
+        }
     }
 
     [RelayCommand]
@@ -315,16 +509,24 @@ public sealed partial class AllocationsViewModel : PageViewModel
                 line.Name,
                 line.Owner,
                 line.Classification,
+                line.Category,
+                line.Priority,
+                line.Frequency,
                 line.DueDateText,
                 line.AmountRequired.ToDisplayString(),
                 line.AmountPaid.ToDisplayString(),
                 line.AmountReserved.ToDisplayString(),
                 line.StillRequired.ToDisplayString(),
                 line.RequiredFromNextPaycheque.ToDisplayString(),
+                line.PaydaysRemaining.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 line.StatusText,
                 line.Classification,
-                line.AttentionText))
+                line.Consequence,
+                line.AttentionText,
+                line.IsUnassigned))
             .ToList();
+
+        AssignmentPreview = string.Empty;
 
         var chosen = allocation.SharedSplit;
         var fallback = allocation.DefaultSplit ?? chosen;

@@ -148,7 +148,7 @@ public sealed class IncomeScheduleTests
 public sealed class BenefitConfirmationTests
 {
     [Fact]
-    public void UnconfirmedBenefitsAreExcludedFromPayrollMerging()
+    public void UnconfirmedBenefitsRemainInTheForecastScenario()
     {
         var memberId = Guid.NewGuid();
         var benefit = new BenefitPlan
@@ -170,7 +170,7 @@ public sealed class BenefitConfirmationTests
             Frequency.Weekly,
             new DateOnly(2026, 9, 4));
 
-        Assert.Empty(merged);
+        Assert.Contains(merged, item => item.Name == "Medical" && item.AmountPerPeriod == new Money(125.00m));
         Assert.False(benefit.AppliesOn(new DateOnly(2026, 10, 1)));
     }
 }

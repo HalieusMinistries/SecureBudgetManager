@@ -195,8 +195,8 @@ public sealed class OperationalReadinessTests
         var takeHome = TakeHomeCalculator.From(document, IncomeEstimate.Normal, Today);
 
         Assert.Contains(takeHome.Attention, item =>
-            item.Message.Contains("awaiting effective-date confirmation", StringComparison.OrdinalIgnoreCase)
-            && item.Message.Contains("excluded", StringComparison.OrdinalIgnoreCase));
+            item.Message.Contains("awaiting payslip confirmation", StringComparison.OrdinalIgnoreCase)
+            && item.Message.Contains("included", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -296,6 +296,227 @@ public sealed class OperationalReadinessTests
         Assert.Equal(first.Document.Accounts, second.Document.Accounts);
         Assert.Equal(first.Document.IncomeSources, second.Document.IncomeSources);
         Assert.Equal(first.Document.Expenses, second.Document.Expenses);
+    }
+
+    [Fact]
+    public void UnassignedBillsAreNotDeductedFromEitherPerson()
+    {
+        var alex = Guid.NewGuid();
+        var sam = Guid.NewGuid();
+        var rentId = Guid.NewGuid();
+        var document = new BudgetDocument
+        {
+            Members =
+            [
+                new HouseholdMember { Id = alex, Name = "Alex", IsDiscretionaryEligible = true },
+                new HouseholdMember { Id = sam, Name = "Sam", IsDiscretionaryEligible = true }
+            ],
+            Accounts =
+            [
+                new BankAccount
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Checking",
+                    CurrentBalance = Money.Zero,
+                    IsPrimary = true,
+                    UpdatedOn = Today
+                }
+            ],
+            IncomeSources =
+            [
+                new HourlyIncome
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Alex work",
+                    MemberId = alex,
+                    PayFrequency = Frequency.Weekly,
+                    AnchorPayDate = new DateOnly(2026, 9, 11),
+                    HourlyRate = new Money(22m),
+                    WeeklyHours = new VariableHours(35m, 40m, 40m)
+                },
+                new HourlyIncome
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Sam work",
+                    MemberId = sam,
+                    PayFrequency = Frequency.Weekly,
+                    AnchorPayDate = new DateOnly(2026, 9, 15),
+                    PayScheduleConfirmed = false,
+                    HourlyRate = new Money(16m),
+                    WeeklyHours = new VariableHours(35m, 40m, 45m),
+                    WeeklyOvertimeHours = VariableHours.Fixed(5m),
+                    OvertimeMultiplier = 1.0m
+                }
+            ],
+            Expenses =
+            [
+                new ExpenseItem
+                {
+                    Id = rentId,
+                    Name = "Rent",
+                    Category = ExpenseCategory.Housing,
+                    ExpectedAmount = new Money(1450m),
+                    Frequency = Frequency.Monthly,
+                    AnchorDueDate = new DateOnly(2026, 10, 1),
+                    Necessity = ExpenseNecessity.Essential,
+                    Assignment = BillAssignment.Unassigned
+                }
+            ]
+        };
+
+        var allocation = PaychequeAllocator.Allocate(document, Today);
+        var register = ObligationRegister.Build(document, Today);
+        var position = OperationalPositionCalculator.Build(document, Today);
+        var rent = register.Lines.Single(line => line.Name == "Rent");
+
+        Assert.Contains("Unassigned", rent.Statuses);
+        Assert.True(rent.StillRequired > Money.Zero);
+        Assert.Equal(Money.Zero, allocation.For(alex)!.ShareOfSharedObligations);
+        Assert.Equal(Money.Zero, allocation.For(sam)!.ShareOfSharedObligations);
+        Assert.Equal(Money.Zero, allocation.For(alex)!.Income.IndividualObligations);
+        Assert.Equal(Money.Zero, position.SafeToSpend);
+        Assert.Equal(BillAssignmentPlanner.CombinedForecastLabel, position.CombinedForecastLabel);
+        Assert.Contains(position.UnassignedObligations, item => item.Contains("Rent", StringComparison.Ordinal));
+
+        var assigned = document with
+        {
+            Expenses =
+            [
+                BillAssignmentPlanner.Apply(
+                    document.Expenses[0],
+                    BillAssignment.MemberPaysAll,
+                    SplitRule.SoleResponsibility(alex))
+            ]
+        };
+        var preview = BillAssignmentPlanner.Preview(
+            document,
+            Today,
+            rentId,
+            BillAssignment.MemberPaysAll,
+            SplitRule.SoleResponsibility(alex));
+        var after = PaychequeAllocator.Allocate(assigned, Today);
+
+        Assert.True(preview.People.Single(person => person.Name == "Alex").After > preview.People.Single(person => person.Name == "Alex").Before);
+        Assert.True(after.For(alex)!.Income.IndividualObligations > Money.Zero);
+        Assert.Equal(Money.Zero, after.For(sam)!.Income.IndividualObligations);
+        Assert.True(ObligationRegister.Build(assigned, Today).Lines.Single(line => line.Name == "Rent").IsUnassigned == false);
+    }
+
+    [Fact]
+    public void UnconfirmedPayScheduleIsNotTreatedAsAFullDeposit()
+    {
+        var source = new HourlyIncome
+        {
+            Id = Guid.NewGuid(),
+            Name = "Unconfirmed job",
+            MemberId = Guid.NewGuid(),
+            PayFrequency = Frequency.Fortnightly,
+            AnchorPayDate = new DateOnly(2026, 9, 15),
+            PayScheduleConfirmed = false,
+            HourlyRate = new Money(16m),
+            WeeklyHours = new VariableHours(35m, 40m, 45m),
+            OvertimeMultiplier = 1.0m
+        };
+
+        Assert.False(IncomeOccurrence.HasConfirmedPayableAmount(source, new DateOnly(2026, 9, 15), []));
+        Assert.Equal(new Money(640m), BillAssignmentPlanner.WeeklyGross(source, IncomeEstimate.Normal));
+        Assert.Contains(
+            "awaiting payslip",
+            BillAssignmentPlanner.FirstDepositExplanation(source, new DateOnly(2026, 9, 15), []),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OwnerlessDebtStaysUnassignedAndIsNotSplit()
+    {
+        var alex = Guid.NewGuid();
+        var sam = Guid.NewGuid();
+        var document = new BudgetDocument
+        {
+            Members =
+            [
+                new HouseholdMember { Id = alex, Name = "Alex", IsDiscretionaryEligible = true },
+                new HouseholdMember { Id = sam, Name = "Sam", IsDiscretionaryEligible = true }
+            ],
+            Accounts =
+            [
+                new BankAccount
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Checking",
+                    CurrentBalance = Money.Zero,
+                    IsPrimary = true,
+                    UpdatedOn = Today
+                }
+            ],
+            IncomeSources =
+            [
+                new HourlyIncome
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Alex work",
+                    MemberId = alex,
+                    PayFrequency = Frequency.Weekly,
+                    AnchorPayDate = new DateOnly(2026, 9, 11),
+                    HourlyRate = new Money(22m),
+                    WeeklyHours = VariableHours.Fixed(40m)
+                }
+            ],
+            Debts =
+            [
+                new SecureBudgetManager.Core.Debt.DebtAccount
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Travel debt",
+                    Kind = SecureBudgetManager.Core.Debt.DebtKind.Other,
+                    Balance = new Money(1_000m),
+                    AnnualPercentageRate = 0m,
+                    MinimumPayment = new Money(116m),
+                    DueDayOfMonth = 1
+                }
+            ]
+        };
+
+        var register = ObligationRegister.Build(document, Today);
+        var allocation = PaychequeAllocator.Allocate(document, Today);
+        var line = register.Lines.Single(item => item.Name.Contains("Travel debt", StringComparison.Ordinal));
+
+        Assert.True(line.IsUnassigned);
+        Assert.Equal("Unassigned", line.Owner);
+        Assert.Equal(Money.Zero, allocation.For(alex)!.ShareOfSharedObligations);
+        Assert.Contains(OperationalPositionCalculator.Build(document, Today).UnassignedObligations, item =>
+            item.Contains("Travel debt", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void VariableUtilityWithAStatedDueDateRemainsOnTheRegister()
+    {
+        var document = new BudgetDocument
+        {
+            Members = [new HouseholdMember { Id = Guid.NewGuid(), Name = "Alex" }],
+            Expenses =
+            [
+                new ExpenseItem
+                {
+                    Id = Guid.NewGuid(),
+                    Name = "Gas estimate",
+                    Category = ExpenseCategory.Utilities,
+                    ExpectedAmount = new Money(125m),
+                    Frequency = Frequency.Monthly,
+                    AnchorDueDate = new DateOnly(2026, 9, 23),
+                    Variability = ExpenseVariability.Variable,
+                    ScheduleConfirmed = false,
+                    Assignment = BillAssignment.Unassigned
+                }
+            ]
+        };
+
+        var line = Assert.Single(ObligationRegister.Build(document, Today).Lines);
+
+        Assert.Equal(new Money(125m), line.StillRequired);
+        Assert.Equal(new DateOnly(2026, 9, 23), line.DueDate);
+        Assert.True(line.IsUnassigned);
+        Assert.Contains("Amount estimated", line.Statuses);
     }
 
     private static BudgetDocument Household(DateOnly today) => new()

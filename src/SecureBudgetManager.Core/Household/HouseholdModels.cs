@@ -27,6 +27,19 @@ public enum SplitMethod
     ProportionalToIncome = 3
 }
 
+/// <summary>
+/// Who has agreed to pay a bill. Unassigned bills stay visible and are not deducted from anyone.
+/// </summary>
+public enum BillAssignment
+{
+    Unassigned = 0,
+    MemberPaysAll = 1,
+    PercentageSplit = 2,
+    FixedDollarSplit = 3,
+    EnteredContributions = 4,
+    SharedAccount = 5
+}
+
 public sealed record HouseholdMember
 {
     public required Guid Id { get; init; }

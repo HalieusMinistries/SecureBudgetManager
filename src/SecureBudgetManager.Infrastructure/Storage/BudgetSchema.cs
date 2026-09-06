@@ -770,7 +770,12 @@ public static class BudgetSchema
         new SchemaMigration(
             20,
             "Expense schedule confirmation, matching unconfirmed pay calendars",
-            "ALTER TABLE expense_item ADD COLUMN schedule_confirmed INTEGER NOT NULL DEFAULT 1;")
+            "ALTER TABLE expense_item ADD COLUMN schedule_confirmed INTEGER NOT NULL DEFAULT 1;"),
+
+        new SchemaMigration(
+            21,
+            "Bill assignment so unassigned obligations are not auto-allocated",
+            "ALTER TABLE expense_item ADD COLUMN assignment INTEGER NOT NULL DEFAULT 0;")
     ];
 
     public static int LatestVersion => Migrations.Count;

@@ -126,6 +126,22 @@ internal static class SqliteValues
         where TEnum : struct, Enum =>
         (TEnum)Enum.ToObject(typeof(TEnum), GetInt(reader, column));
 
+    public static TEnum GetEnumOrDefault<TEnum>(SqliteDataReader reader, string column, TEnum fallback)
+        where TEnum : struct, Enum
+    {
+        for (var index = 0; index < reader.FieldCount; index++)
+        {
+            if (string.Equals(reader.GetName(index), column, StringComparison.OrdinalIgnoreCase))
+            {
+                return reader.IsDBNull(index)
+                    ? fallback
+                    : (TEnum)Enum.ToObject(typeof(TEnum), (int)reader.GetInt64(index));
+            }
+        }
+
+        return fallback;
+    }
+
     public static TEnum? GetNullableEnum<TEnum>(SqliteDataReader reader, string column)
         where TEnum : struct, Enum
     {

@@ -75,7 +75,10 @@ public sealed record ExpenseItem
 
     public Ownership Ownership { get; init; } = Ownership.Shared;
 
-    /// <summary>Who pays, and in what proportion.</summary>
+    /// <summary>Who has agreed to pay. Unassigned bills are not deducted from anyone.</summary>
+    public BillAssignment Assignment { get; init; } = BillAssignment.Unassigned;
+
+    /// <summary>Who pays, and in what proportion, once an assignment is made.</summary>
     public SplitRule? Split { get; init; }
 
     /// <summary>Set when the bill is collected automatically on a different day from the due date.</summary>

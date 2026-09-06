@@ -26,22 +26,70 @@
                                             <Run Text=" · "/><Run Text="{Binding Classification, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="{Binding Category, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Priority, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Frequency, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
                                             <Run Text="Required "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
                                             <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
                                             <Run Text=" · paid "/><Run Text="{Binding AmountPaid, Mode=OneWay}"/>
                                             <Run Text=" · reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
                                             <Run Text=" · still required "/><Run Text="{Binding StillRequired, Mode=OneWay}"/>
                                             <Run Text=" · from next paycheque "/><Run Text="{Binding RequiredNow, Mode=OneWay}"/>
+                                            <Run Text=" · paydays remaining "/><Run Text="{Binding PaydaysRemaining, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
                                             <Run Text="{Binding Status, Mode=OneWay}"/>
                                         </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Consequence}"/>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
                                     </StackPanel>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Who pays this bill"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap"
+                               Text="Unassigned bills stay visible. They are not deducted from either person until someone agrees to pay."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Assignment"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding AssignmentOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding EditorAssignment}"
+                              AutomationProperties.Name="Bill assignment"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="If one person pays all"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Members}"
+                              DisplayMemberPath="Name"
+                              SelectedItem="{Binding EditorPayer}"
+                              AutomationProperties.Name="Person who pays all"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="First adult share or amount"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding EditorFirstShare, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="First adult share"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Second adult share or amount"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding EditorSecondShare, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Second adult share"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssignmentPreview}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="Show effect before saving"
+                                Command="{Binding PreviewAssignmentCommand}"
+                                AutomationProperties.Name="Preview bill assignment"/>
+                        <Button Style="{StaticResource PrimaryButton}"
+                                Margin="12,0,0,0"
+                                Content="Save assignment"
+                                Command="{Binding SaveAssignmentCommand}"
+                                AutomationProperties.Name="Save bill assignment"/>
+                    </StackPanel>
                 </StackPanel>
             </Border>
 

@@ -794,6 +794,7 @@ public sealed class BudgetRepository : IBudgetRepository
                 Necessity = SqliteValues.GetEnum<ExpenseNecessity>(reader, "necessity"),
                 Variability = SqliteValues.GetEnum<ExpenseVariability>(reader, "variability"),
                 Ownership = SqliteValues.GetEnum<Ownership>(reader, "ownership"),
+                Assignment = SqliteValues.GetEnumOrDefault(reader, "assignment", BillAssignment.Unassigned),
                 Split = split,
                 AutopayAnchorDate = SqliteValues.GetNullableDate(reader, "autopay_anchor_date"),
                 IsPaused = SqliteValues.GetBool(reader, "is_paused"),
@@ -849,12 +850,12 @@ public sealed class BudgetRepository : IBudgetRepository
             using (var command = Command(connection, transaction, """
                 INSERT INTO expense_item (
                     id, name, category_name, category_is_built_in, expected_amount, frequency,
-                    anchor_due_date, necessity, variability, ownership, split_method,
+                    anchor_due_date, necessity, variability, ownership, assignment, split_method,
                     autopay_anchor_date, is_paused, due_date_unknown, schedule_confirmed, is_archived, due_date_adjustment,
                     ends_on, notes, annual_increase_percent)
                 VALUES (
                     $id, $name, $category, $builtIn, $amount, $frequency,
-                    $anchor, $necessity, $variability, $ownership, $splitMethod,
+                    $anchor, $necessity, $variability, $ownership, $assignment, $splitMethod,
                     $autopay, $paused, $dueUnknown, $scheduleConfirmed, $archived, $adjustment,
                     $ends, $notes, $increase);
                 """))
@@ -869,6 +870,7 @@ public sealed class BudgetRepository : IBudgetRepository
                 command.Parameters.AddWithValue("$necessity", (int)expense.Necessity);
                 command.Parameters.AddWithValue("$variability", (int)expense.Variability);
                 command.Parameters.AddWithValue("$ownership", (int)expense.Ownership);
+                command.Parameters.AddWithValue("$assignment", (int)expense.Assignment);
                 command.Parameters.AddWithValue(
                     "$splitMethod",
                     expense.Split is { } rule ? (int)rule.Method : DBNull.Value);

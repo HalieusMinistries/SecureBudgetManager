@@ -37,32 +37,86 @@
                 </Border>
                 <Border Style="{StaticResource Card}" Margin="0,0,8,16">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource CardTitle}" Text="Next confirmed income"/>
-                        <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding NextIncomeText}"/>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Shared household funds"/>
+                        <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap">
+                            <Run Text="Available "/><Run Text="{Binding HouseholdAvailableText, Mode=OneWay}"/>
+                            <Run Text=" · safe to spend "/><Run Text="{Binding HouseholdSafeToSpendText, Mode=OneWay}"/>
+                        </TextBlock>
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Card}" Margin="8,0,0,16">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource CardTitle}" Text="Bills due before that income"/>
-                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding BillsBeforeIncomeText}"/>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Unassigned obligations"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding UnassignedTotalText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="Not deducted from either person."/>
                     </StackPanel>
                 </Border>
             </UniformGrid>
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Forecast monthly surplus"/>
-                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding ForecastSurplusText}"/>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Each person's income"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Income is not automatically pooled. Assigned bills affect only the people who agreed to pay them."/>
+                    <ItemsControl ItemsSource="{Binding People}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding NextIncome}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding FirstDeposit}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Safe to spend "/><Run Text="{Binding SafeToSpend, Mode=OneWay}"/>
+                                            <Run Text=" · assigned bills before next income "/><Run Text="{Binding BillsBeforeIncome, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Gross "/><Run Text="{Binding Gross, Mode=OneWay}"/>
+                                            <Run Text=" · Taxes "/><Run Text="{Binding Taxes, Mode=OneWay}"/>
+                                            <Run Text=" · Deductions "/><Run Text="{Binding Deductions, Mode=OneWay}"/>
+                                            <Run Text=" · Benefits "/><Run Text="{Binding Benefits, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Usable net "/><Run Text="{Binding UsableNet, Mode=OneWay}"/>
+                                            <Run Text=" · Contribution "/><Run Text="{Binding ContributionPercent, Mode=OneWay}"/>
+                                            <Run Text=" · Share of shared costs "/><Run Text="{Binding SharedShare, Mode=OneWay}"/>
+                                            <Run Text=" · Individual obligations "/><Run Text="{Binding IndividualObligations, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Savings "/><Run Text="{Binding Savings, Mode=OneWay}"/>
+                                            <Run Text=" · Allowance "/><Run Text="{Binding Allowance, Mode=OneWay}"/>
+                                            <Run Text=" · Spent "/><Run Text="{Binding SpendingUsed, Mode=OneWay}"/>
+                                            <Run Text=" · Remaining "/><Run Text="{Binding RemainingBalance, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Basis}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Essential food and transport"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding EssentialsExplanation}"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                        <Run Text="Required "/><Run Text="{Binding EssentialRequiredText, Mode=OneWay}"/>
+                        <Run Text=" · funded "/><Run Text="{Binding EssentialFundedText, Mode=OneWay}"/>
+                        <Run Text=" · unfunded "/><Run Text="{Binding EssentialUnfundedText, Mode=OneWay}"/>
+                    </TextBlock>
                     <TextBlock Style="{StaticResource HintText}"
-                               Text="This is a future average. It is not money that can be spent today."/>
+                               Text="Conservative income can limit what is assigned. It never reduces or conceals the amount required."/>
                 </StackPanel>
             </Border>
 
             <Border Style="{StaticResource Card}"
-                    Visibility="{Binding HasBillsRequiringAttention, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{Binding HasUnassignedObligations, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Bills requiring attention before the next income"/>
-                    <ItemsControl ItemsSource="{Binding BillsRequiringAttention}">
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Outstanding unassigned obligations"/>
+                    <ItemsControl ItemsSource="{Binding UnassignedObligations}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
@@ -72,17 +126,17 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}">
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasBillsRequiringAttention, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Essential coverage"/>
-                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding EssentialsExplanation}"/>
-                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                        <Run Text="Required "/><Run Text="{Binding EssentialRequiredText, Mode=OneWay}"/>
-                        <Run Text=" · funded "/><Run Text="{Binding EssentialFundedText, Mode=OneWay}"/>
-                        <Run Text=" · unfunded "/><Run Text="{Binding EssentialUnfundedText, Mode=OneWay}"/>
-                    </TextBlock>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="Conservative income can limit what is assigned. It never reduces or conceals the amount required."/>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Required next-paycheque reservations"/>
+                    <ItemsControl ItemsSource="{Binding BillsRequiringAttention}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
                 </StackPanel>
             </Border>
 
@@ -203,40 +257,11 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Each earner"/>
-                    <TextBlock Style="{StaticResource CardBody}"
-                               Text="Personal money comes from each person's own income. Only members you have marked as eligible receive an allowance."/>
-                    <ItemsControl ItemsSource="{Binding People}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border Style="{StaticResource ListRow}">
-                                    <StackPanel>
-                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Name}"/>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Gross "/><Run Text="{Binding Gross, Mode=OneWay}"/>
-                                            <Run Text=" · Taxes "/><Run Text="{Binding Taxes, Mode=OneWay}"/>
-                                            <Run Text=" · Deductions "/><Run Text="{Binding Deductions, Mode=OneWay}"/>
-                                            <Run Text=" · Benefits "/><Run Text="{Binding Benefits, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Usable net "/><Run Text="{Binding UsableNet, Mode=OneWay}"/>
-                                            <Run Text=" · Contribution "/><Run Text="{Binding ContributionPercent, Mode=OneWay}"/>
-                                            <Run Text=" · Share of shared costs "/><Run Text="{Binding SharedShare, Mode=OneWay}"/>
-                                            <Run Text=" · Individual obligations "/><Run Text="{Binding IndividualObligations, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Savings "/><Run Text="{Binding Savings, Mode=OneWay}"/>
-                                            <Run Text=" · Allowance "/><Run Text="{Binding Allowance, Mode=OneWay}"/>
-                                            <Run Text=" · Spent "/><Run Text="{Binding SpendingUsed, Mode=OneWay}"/>
-                                            <Run Text=" · Remaining "/><Run Text="{Binding RemainingBalance, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Basis}"/>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
-                                    </StackPanel>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Future monthly forecast"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding CombinedForecastLabel}"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding ForecastSurplusText}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="This is a future average. It is not money that can be spent today."/>
                 </StackPanel>
             </Border>
 

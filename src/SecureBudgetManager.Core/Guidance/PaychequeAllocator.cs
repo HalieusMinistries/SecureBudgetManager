@@ -1,6 +1,7 @@
 using SecureBudgetManager.Core.CashFlow;
 using SecureBudgetManager.Core.Expenses;
 using SecureBudgetManager.Core.Goals;
+using SecureBudgetManager.Core.Household;
 using SecureBudgetManager.Core.International;
 using SecureBudgetManager.Core.Models;
 using SecureBudgetManager.Core.Storage;
@@ -335,7 +336,18 @@ public static class PaychequeAllocator
             new PayPeriod(today, validThrough, today));
 
         var individualTotal = Money.Sum(earnerIncomes.Select(income => income.IndividualObligations)).Round();
-        var sharedObligations = Money.Max(Money.Zero, (protectedCashCalls - individualTotal).Round());
+        var register = ObligationRegister.Build(document, today);
+        var unassignedStill = BillAssignmentPlanner.UnassignedRemaining(document, register);
+        var householdAccountStill = Money.Sum(register.Lines
+            .Where(line =>
+            {
+                var expense = document.Expenses.FirstOrDefault(item => item.Id == line.Id);
+                return expense is { Assignment: BillAssignment.SharedAccount };
+            })
+            .Select(line => line.StillRequired)).Round();
+        var sharedObligations = Money.Max(
+            Money.Zero,
+            (protectedCashCalls - individualTotal - unassignedStill - householdAccountStill).Round());
 
         var eligible = earnerIncomes.Where(income => income.IsDiscretionaryEligible).ToList();
 
