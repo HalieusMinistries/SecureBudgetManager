@@ -48,6 +48,10 @@
             <TextBox Style="{StaticResource FormTextBox}"
                      Text="{Binding AssistanceValue, UpdateSourceTrigger=PropertyChanged}"
                      AutomationProperties.Name="Estimated weekly value of assistance"/>
+            <TextBlock Style="{StaticResource HintText}"
+                       Foreground="{StaticResource Brush.Danger}"
+                       TextWrapping="Wrap"
+                       Text="Optional. Leave blank when the weekly value is unknown."/>
             <TextBlock Style="{StaticResource FieldLabel}" Text="Review by"/>
             <DatePicker Style="{StaticResource FormDatePicker}"
                         SelectedDate="{Binding AssistanceReview}"

@@ -142,13 +142,14 @@ public sealed class BillsAndAssistanceInteractionTests
 
         vm.PaymentAmount = "125";
         await vm.RecordPaymentCommand.ExecuteAsync(null);
-        Assert.True(vm.IsEditorOpen);
+        Assert.False(vm.IsEditorOpen);
         Assert.Equal(new Money(125m), Assert.Single(session.Document.Transactions).Amount);
         Assert.Equal("Rent payment", session.Document.Transactions.Single().Description);
 
+        vm.OpenBillCommand.Execute(row);
         vm.ReserveAmount = "80";
         await vm.SaveReserveCommand.ExecuteAsync(null);
-        Assert.True(vm.IsEditorOpen);
+        Assert.False(vm.IsEditorOpen);
         Assert.Equal(new Money(80m), Assert.Single(session.Document.Reserves).Reserved);
         Assert.Equal(row.ObligationId, session.Document.Reserves.Single().ObligationId);
     }
@@ -258,6 +259,32 @@ public sealed class BillsAndAssistanceInteractionTests
         Assert.Equal("Edit assistance", vm.EditorTitle);
         Assert.Equal(string.Empty, vm.AssistanceValue);
         Assert.Equal("Local pantry", vm.AssistanceSource);
+    }
+
+    [Fact]
+    public async Task GroceryAssistanceSavesUnknownOptionalFieldsAndCloses()
+    {
+        var (session, vm, fruitId) = OpenGrocery();
+
+        vm.BeginAddAssistanceCommand.Execute(null);
+        vm.AssistanceSource = "Food Banks";
+        vm.SelectedAssistanceStatus = "expected";
+        vm.AssistanceEffective = null;
+        vm.AssistanceReview = null;
+        vm.AssistanceValue = string.Empty;
+        vm.ToggleAssistanceCategoryCommand.Execute(fruitId);
+        await vm.SaveAssistanceCommand.ExecuteAsync(null);
+
+        Assert.False(vm.IsEditorOpen);
+        Assert.Equal("Assistance saved", vm.StatusMessage);
+        var saved = session.Document.GroceryPlanOf(GroceryPlanKind.Current)!.Assistance;
+        Assert.True(saved.IsExpected);
+        Assert.Equal("Food Banks", saved.SourceName);
+        Assert.True(saved.EstimatedWeeklyValue.IsZero);
+        Assert.Null(saved.EffectiveDate);
+        Assert.Null(saved.ReviewDate);
+        Assert.Equal("Fruit", Assert.Single(saved.CategoriesSupplied));
+        Assert.DoesNotContain("cancelled", vm.ErrorMessage ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

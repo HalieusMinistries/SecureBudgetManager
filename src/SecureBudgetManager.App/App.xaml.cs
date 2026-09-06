@@ -59,15 +59,19 @@ public partial class App : Application
     {
         args.Handled = true;
 
-        // Fail closed: any unexpected fault conceals the workspace before the user is told.
-        var message = args.Exception is VaultException vaultException
-            ? vaultException.Message
-            : "Secure Budget Manager ran into a problem and the last action was cancelled.";
-
-        TryLockVault();
+        if (args.Exception is VaultException vaultException)
+        {
+            TryLockVault();
+            MessageBox.Show(
+                vaultException.Message,
+                "Secure Budget Manager",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
 
         MessageBox.Show(
-            message,
+            "This information was not saved. Secure Budget Manager ran into a problem with the last action.",
             "Secure Budget Manager",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);

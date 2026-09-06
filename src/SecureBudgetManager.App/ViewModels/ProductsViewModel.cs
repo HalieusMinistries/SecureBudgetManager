@@ -296,12 +296,14 @@ public sealed partial class ProductsViewModel : PageViewModel, IEditablePage
             return;
         }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? "Product saved."
-            : _session.LastError ?? "The product could not be saved.";
-
-        if (string.Equals(StatusMessage, "Product saved.", StringComparison.Ordinal))
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Product saved",
+            document => document.Products.Any(item => item.Id == product.Id && item.Name == product.Name));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+        if (result.IsSuccess)
         {
             DismissEditor();
         }

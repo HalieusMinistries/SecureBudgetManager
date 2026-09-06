@@ -124,6 +124,15 @@ public sealed class BudgetSession : IBudgetSession
             LastError = error;
             return false;
         }
+        catch (Exception exception)
+        {
+            error = UserFacingError.From(exception);
+            LastError = error;
+            _logger.LogError(
+                "Household document validation failed. Exception type: {ExceptionType}.",
+                exception.GetType().Name);
+            return false;
+        }
 
         lock (_gate)
         {
@@ -177,6 +186,7 @@ public sealed class BudgetSession : IBudgetSession
 
         if (Interlocked.CompareExchange(ref _saveDepth, 1, 0) != 0)
         {
+            LastError = "A save is already in progress.";
             return false;
         }
 
@@ -228,5 +238,26 @@ public sealed class BudgetSession : IBudgetSession
     private static bool DocumentsMatch(BudgetDocument left, BudgetDocument right) =>
         ReferenceEquals(left, right);
 
-    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+    private void RaiseChanged()
+    {
+        var handlers = Changed;
+        if (handlers is null)
+        {
+            return;
+        }
+
+        foreach (var subscriber in handlers.GetInvocationList())
+        {
+            try
+            {
+                subscriber.DynamicInvoke(this, EventArgs.Empty);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(
+                    "A workspace page could not refresh after a document change. Exception type: {ExceptionType}.",
+                    exception.GetType().Name);
+            }
+        }
+    }
 }

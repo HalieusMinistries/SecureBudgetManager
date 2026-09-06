@@ -756,21 +756,13 @@ public sealed partial class PayrollViewModel : PageViewModel, IEditablePage
 
     private async Task<bool> CommitAsync(BudgetDocument document, CancellationToken cancellationToken)
     {
-        ErrorMessage = null;
-
-        if (!_session.TryReplace(document, out var error))
-        {
-            ErrorMessage = error;
-            return false;
-        }
-
-        if (await _session.SaveAsync(cancellationToken))
-        {
-            return true;
-        }
-
-        ErrorMessage = _session.LastError ?? "The household data could not be saved.";
-        return false;
+        var result = await EditorSaveCoordinator.TryCommitAsync(
+            _session,
+            document,
+            cancellationToken,
+            "Benefit saved");
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        return result.IsSuccess;
     }
 
     private void OnSessionChanged(object? sender, EventArgs e) => Refresh();

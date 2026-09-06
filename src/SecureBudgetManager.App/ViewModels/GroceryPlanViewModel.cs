@@ -165,6 +165,11 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     [ObservableProperty]
     private string? errorMessage;
 
+    [ObservableProperty]
+    private string? focusField;
+
+    public IReadOnlyDictionary<string, string> FieldErrors { get; private set; } = EditorSaveResult.NoFieldErrors;
+
     public IReadOnlyList<GroceryCategoryRow> Categories { get; private set; } = [];
 
     public IReadOnlyList<AssistanceCategoryChoice> AssistanceCategories { get; private set; } = [];
@@ -515,7 +520,10 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
 
             if (!AmountParsing.TryParseMoney(CategoryLimit, out var limit) || limit.IsNegative)
             {
-                ErrorMessage = "Enter a weekly limit of zero or more.";
+                ApplySaveResult(EditorSaveResult.Validation(
+                    "Enter a weekly limit of zero or more.",
+                    "CategoryLimit",
+                    "Enter a weekly limit of zero or more."));
                 return;
             }
 
@@ -541,15 +549,22 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? $"{selected.Name} set to {limit.ToDisplayString()} a week."
-                : _session.LastError ?? "The category could not be saved.";
-
-            if (StatusMessage?.Contains(" set to ", StringComparison.Ordinal) == true)
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                $"{selected.Name} saved",
+                document => document.GroceryPlanOf(SelectedKind)?.Categories
+                    .FirstOrDefault(category => category.Id == selected.Id) is { } saved
+                    && saved.WeeklyLimit == limit);
+            ApplySaveResult(result);
+            if (result.IsSuccess)
             {
                 DismissEditor();
             }
+        }
+        catch (Exception exception)
+        {
+            ApplySaveResult(EditorSaveResult.NotSaved(UserFacingError.From(exception)));
         }
         finally
         {
@@ -661,7 +676,10 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
             {
                 if (!AmountParsing.TryParseMoney(AssistanceValue, out value) || value.IsNegative)
                 {
-                    ErrorMessage = "Enter the estimated weekly value if it is known, or leave it blank.";
+                    ApplySaveResult(EditorSaveResult.Validation(
+                        "Enter the estimated weekly value if it is known, or leave it blank.",
+                        "AssistanceValue",
+                        "Leave this blank when the value is unknown."));
                     return;
                 }
             }
@@ -700,16 +718,29 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? "Food assistance saved. The fallback plan still shows the cash requirement without it."
-                : _session.LastError ?? "The assistance details could not be saved.";
-
-            if (StatusMessage?.StartsWith("Food assistance saved", StringComparison.Ordinal) == true)
+            var source = string.IsNullOrWhiteSpace(AssistanceSource) ? null : AssistanceSource.Trim();
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                "Assistance saved",
+                document =>
+                {
+                    var saved = document.GroceryPlanOf(SelectedKind)?.Assistance;
+                    return saved is not null
+                           && saved.IsExpected == (SelectedAssistanceStatus is "expected" or "suspended")
+                           && string.Equals(saved.SourceName, source, StringComparison.Ordinal)
+                           && saved.EstimatedWeeklyValue == value;
+                });
+            ApplySaveResult(result);
+            if (result.IsSuccess)
             {
                 IsAssistanceSelected = true;
                 DismissEditor();
             }
+        }
+        catch (Exception exception)
+        {
+            ApplySaveResult(EditorSaveResult.NotSaved(UserFacingError.From(exception)));
         }
         finally
         {
@@ -747,6 +778,25 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
 
     private void EndSave() => System.Threading.Interlocked.Exchange(ref _saveDepth, 0);
 
+    private void ApplySaveResult(EditorSaveResult result)
+    {
+        FieldErrors = result.FieldErrors;
+        FocusField = result.FocusField;
+        OnPropertyChanged(nameof(FieldErrors));
+        if (result.IsSuccess)
+        {
+            ErrorMessage = null;
+            StatusMessage = result.Message;
+            return;
+        }
+
+        ErrorMessage = result.Message;
+        if (result.Status != EditorSaveStatus.ValidationFailed)
+        {
+            StatusMessage = null;
+        }
+    }
+
     private static bool IsAssistanceRecorded(FoodAssistance assistance) =>
         assistance.IsExpected
         || assistance.IsSuspended
@@ -757,7 +807,17 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
         || !string.IsNullOrWhiteSpace(assistance.Notes)
         || assistance.CategoriesSupplied.Count > 0;
 
-    private void OnSessionChanged(object? sender, EventArgs e) => Refresh();
+    private void OnSessionChanged(object? sender, EventArgs e)
+    {
+        try
+        {
+            Refresh();
+        }
+        catch (Exception exception)
+        {
+            ErrorMessage = UserFacingError.From(exception);
+        }
+    }
 
     private void Refresh()
     {

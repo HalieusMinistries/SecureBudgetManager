@@ -26,7 +26,13 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Recurring expenses" VerticalAlignment="Center" Margin="0"/>
-                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Add expense" Command="{Binding BeginAddCommand}" AutomationProperties.Name="Add expense"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource SecondaryButton}" Margin="0,0,8,0"
+                            Content="Create our suggested starting budget"
+                            Command="{Binding BeginSuggestedBudgetCommand}"
+                            AutomationProperties.Name="Create our suggested starting budget"/>
+                    <Button Style="{StaticResource SecondaryButton}" Content="Add expense" Command="{Binding BeginAddCommand}" AutomationProperties.Name="Add expense"/>
+                </StackPanel>
             </Grid>
 
             <ItemsControl ItemsSource="{Binding Items}">

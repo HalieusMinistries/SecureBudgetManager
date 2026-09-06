@@ -48,7 +48,7 @@ $arp = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SecureBudgetMa
 New-Item -Path $arp -Force | Out-Null
 Set-ItemProperty $arp DisplayName "Secure Budget Manager"
 Set-ItemProperty $arp Publisher "Secure Budget Manager"
-Set-ItemProperty $arp DisplayVersion "1.0.2"
+Set-ItemProperty $arp DisplayVersion "1.0.3"
 Set-ItemProperty $arp DisplayIcon $installedExe
 Set-ItemProperty $arp InstallLocation $InstallDirectory
 Set-ItemProperty $arp UninstallString "powershell.exe -NoProfile -ExecutionPolicy Bypass -File `"$uninstall`""

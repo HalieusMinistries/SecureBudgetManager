@@ -296,12 +296,14 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel, IEditableP
             return;
         }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? "Foreign account saved. No banking credential was stored."
-            : _session.LastError ?? "The account could not be saved.";
-
-        if (StatusMessage?.StartsWith("Foreign account saved", StringComparison.Ordinal) == true)
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Foreign account saved",
+            document => document.ForeignAccounts.Any(item => item.Id == account.Id));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+        if (result.IsSuccess)
         {
             DismissEditor();
         }

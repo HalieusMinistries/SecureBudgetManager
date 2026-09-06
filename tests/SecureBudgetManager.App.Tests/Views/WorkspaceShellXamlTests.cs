@@ -14,6 +14,9 @@ public sealed class WorkspaceShellXamlTests
         Assert.DoesNotContain("computer\"/>", xaml, StringComparison.Ordinal);
         Assert.Contains("EditorOverlay", xaml, StringComparison.Ordinal);
         Assert.Contains("IsEditorVisible", xaml, StringComparison.Ordinal);
+        Assert.Contains("SET UP YOUR BUDGET", xaml, StringComparison.Ordinal);
+        Assert.Contains("USE YOUR BUDGET", xaml, StringComparison.Ordinal);
+        Assert.Contains("PLAN AND REFERENCE", xaml, StringComparison.Ordinal);
     }
 
     [Fact]

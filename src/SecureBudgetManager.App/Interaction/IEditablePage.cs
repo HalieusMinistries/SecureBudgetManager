@@ -21,6 +21,12 @@ public interface IEditablePage
 
     string? EditorError { get; }
 
+    IReadOnlyDictionary<string, string> FieldErrors => EditorSaveResult.NoFieldErrors;
+
+    string? FocusField => null;
+
+    bool IsEditorSaving => false;
+
     ICommand SaveEditorCommand { get; }
 
     ICommand CancelEditorCommand { get; }

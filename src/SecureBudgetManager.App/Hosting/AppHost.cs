@@ -31,6 +31,7 @@ internal static class AppHost
         builder.Services.AddSingleton<InactivityMonitor>();
         builder.Services.AddSingleton<SessionLockWatcher>();
         builder.Services.AddSingleton<IUserDialog, WpfUserDialog>();
+        builder.Services.AddSingleton<IWorkspaceNotice, WorkspaceNoticeService>();
         builder.Services.AddSingleton<IBudgetSession, BudgetSession>();
         builder.Services.AddSingleton<IPendingHouseholdImport, PendingHouseholdImportService>();
         builder.Services.AddSingleton<CaptureVisualLocator>();

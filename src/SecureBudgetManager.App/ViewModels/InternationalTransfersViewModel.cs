@@ -441,12 +441,14 @@ public sealed partial class InternationalTransfersViewModel : PageViewModel, IEd
             return;
         }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? "Transfer saved with its original rate. Later rate changes will not rewrite it."
-            : _session.LastError ?? "The transfer could not be saved.";
-
-        if (StatusMessage?.StartsWith("Transfer saved", StringComparison.Ordinal) == true)
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Transfer saved",
+            document => document.InternationalTransfers.Any(item => item.Id == transfer.Id));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+        if (result.IsSuccess)
         {
             DismissEditor();
         }
@@ -520,12 +522,14 @@ public sealed partial class InternationalTransfersViewModel : PageViewModel, IEd
             return;
         }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? "Support commitment saved. It uses the household-chosen hierarchy tier."
-            : _session.LastError ?? "The commitment could not be saved.";
-
-        if (StatusMessage?.StartsWith("Support commitment saved", StringComparison.Ordinal) == true)
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Support commitment saved",
+            document => document.SupportCommitments.Any(item => item.Id == commitment.Id));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+        if (result.IsSuccess)
         {
             DismissEditor();
         }

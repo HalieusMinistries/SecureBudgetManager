@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
+using SecureBudgetManager.Core.Guidance;
 using SecureBudgetManager.Core.Layout;
 
 namespace SecureBudgetManager.App.ViewModels;
@@ -13,9 +14,12 @@ namespace SecureBudgetManager.App.ViewModels;
 public sealed partial class MainViewModel : ObservableObject
 {
     private readonly IBudgetSession _session;
+    private readonly IWorkspaceNotice _notice;
+    private bool _choseStartupPage;
 
     public MainViewModel(
         IBudgetSession session,
+        IWorkspaceNotice notice,
         DashboardViewModel dashboard,
         HouseholdViewModel household,
         IncomeViewModel income,
@@ -38,6 +42,9 @@ public sealed partial class MainViewModel : ObservableObject
         HelpViewModel help)
     {
         _session = session;
+        _notice = notice;
+        WorkspaceNoticeService.Current = notice;
+        notice.Raised += OnNoticeRaised;
         Dashboard = dashboard;
         Household = household;
         Income = income;
@@ -61,6 +68,7 @@ public sealed partial class MainViewModel : ObservableObject
         currentViewModel = thisWeek;
         thisWeek.PropertyChanged += OnPagePropertyChanged;
         _session.Changed += OnSessionChanged;
+        ChooseStartupPageIfNeeded();
     }
 
     public double OverlayWidth => EditorOverlayCalculator.PreferredWidth;
@@ -279,7 +287,18 @@ public sealed partial class MainViewModel : ObservableObject
     private void LockWorkspace() => LockRequested?.Invoke(this, EventArgs.Empty);
 
     [RelayCommand]
-    private void DismissStatus() => StatusMessage = null;
+    private void DismissStatus()
+    {
+        StatusMessage = null;
+        _notice.Clear();
+    }
+
+    [RelayCommand]
+    private void CreateSuggestedBudget()
+    {
+        Navigate(Expenses);
+        Expenses.BeginSuggestedBudget();
+    }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveAsync(CancellationToken cancellationToken)
@@ -364,7 +383,50 @@ public sealed partial class MainViewModel : ObservableObject
         OnPropertyChanged(nameof(IsSaving));
         OnPropertyChanged(nameof(CanSave));
         SaveCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(SetupProgressText));
+        OnPropertyChanged(nameof(SetupSteps));
+        OnPropertyChanged(nameof(HasIncompleteSetup));
+        ChooseStartupPageIfNeeded();
     }
+
+    private void OnNoticeRaised(object? sender, WorkspaceNoticeEventArgs e)
+    {
+        StatusMessage = e.Message;
+    }
+
+    private void ChooseStartupPageIfNeeded()
+    {
+        if (!_session.IsOpen)
+        {
+            _choseStartupPage = false;
+            return;
+        }
+
+        if (_choseStartupPage)
+        {
+            return;
+        }
+
+        _choseStartupPage = true;
+        CurrentViewModel = SetupProgress.IsMinimumOperational(_session.Document)
+            ? ThisWeek
+            : PageFor(SetupProgress.NextIncompleteStep(_session.Document)) ?? Household;
+    }
+
+    private PageViewModel? PageFor(SetupStepKind? step) => step switch
+    {
+        SetupStepKind.Household => Household,
+        SetupStepKind.Income => Income,
+        SetupStepKind.Payroll => Payroll,
+        SetupStepKind.Benefits => Payroll,
+        SetupStepKind.Expenses => Expenses,
+        SetupStepKind.GroceryPlan => Grocery,
+        SetupStepKind.Debt => Debt,
+        SetupStepKind.Savings => Savings,
+        SetupStepKind.AllocationRules => AllocationRules,
+        SetupStepKind.BillsAndReservations => Allocations,
+        _ => null
+    };
 
     public void ResetNavigation()
     {
@@ -374,9 +436,23 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         _showBenefits = false;
-        CurrentViewModel = ThisWeek;
         StatusMessage = null;
+        _notice.Clear();
+        CurrentViewModel = _session.IsOpen && SetupProgress.IsMinimumOperational(_session.Document)
+            ? ThisWeek
+            : PageFor(_session.IsOpen ? SetupProgress.NextIncompleteStep(_session.Document) : null) ?? Household;
     }
+
+    public bool HasIncompleteSetup =>
+        _session.IsOpen && !SetupProgress.IsMinimumOperational(_session.Document);
+
+    public string SetupProgressText =>
+        !_session.IsOpen
+            ? "Open the household database to see setup progress."
+            : SetupProgress.Describe(_session.Document);
+
+    public IReadOnlyList<SetupStepRow> SetupSteps =>
+        _session.IsOpen ? SetupProgress.Steps(_session.Document) : [];
 
     private bool _showBenefits;
 }

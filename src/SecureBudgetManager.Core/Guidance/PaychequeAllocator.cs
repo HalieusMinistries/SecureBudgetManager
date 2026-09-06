@@ -726,7 +726,9 @@ public static class PaychequeAllocator
 
         foreach (var expense in document.Expenses)
         {
-            if (expense.IsPaused || ReservationPlanner.IsDatedObligation(expense))
+            if (expense.IsPaused
+                || !ExpenseCoverage.CreatesHouseholdOutflow(expense)
+                || ReservationPlanner.IsDatedObligation(expense))
             {
                 continue;
             }
