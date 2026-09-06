@@ -1,0 +1,90 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.InternationalTransfersView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Record a transfer"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding ConversionSummary}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Sender"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Sender, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transfer sender"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Recipient"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Recipient, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transfer recipient"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount sent"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AmountSent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Amount sent"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Exchange rate received"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ExchangeRate, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Exchange rate received"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount received"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AmountReceived, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Amount received"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Provider fee"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ProviderFee, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Provider fee"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Purpose"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding PurposeOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Purpose}" AutomationProperties.Name="Transfer purpose"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Relationship"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding RelationshipOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Relationship}" AutomationProperties.Name="Transfer relationship"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax classification"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding ClassificationOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding TaxClassification}" AutomationProperties.Name="Transfer tax classification"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save transfer" Command="{Binding SaveTransferCommand}" AutomationProperties.Name="Save international transfer"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Recurring support"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CommitmentName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Support commitment name"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Fixed USD to send"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding FixedUsd, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fixed USD to send"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Fixed ZAR the recipient must receive"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding FixedZar, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fixed ZAR to receive"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Expected USD to ZAR rate"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ExpectedRate, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Expected USD to ZAR rate"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Expected fees"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ExpectedFees, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Expected transfer fees"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Exchange-rate safety margin (%)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SafetyMargin, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Exchange rate safety margin"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Frequency"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding Frequencies}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding CommitmentFrequency}" AutomationProperties.Name="Support frequency"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Hierarchy tier"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TierOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding CommitmentTier}" AutomationProperties.Name="Support hierarchy tier"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save support commitment" Command="{Binding SaveCommitmentCommand}" AutomationProperties.Name="Save support commitment"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding ReviewFlags}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Transfers}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ListRow}">
+                            <StackPanel>
+                                <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Parties}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Amounts}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                    <Run Text="{Binding Purpose, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Classification, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Review, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -1,0 +1,100 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.ProductsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Product"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ProductName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product name"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product category"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Brand"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Brand, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product brand"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Package size"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PackageSize, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Package size"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Unit of measure"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding UnitOfMeasure, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Unit of measure"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Units per package"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding UnitsPerPackage, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Units per package"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Essential" IsChecked="{Binding IsEssential}" AutomationProperties.Name="Product is essential"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Preferred product" IsChecked="{Binding IsPreferred}" AutomationProperties.Name="Preferred product"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Active" IsChecked="{Binding IsActive}" AutomationProperties.Name="Product is active"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Needs-hierarchy tier"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TierOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Tier}" AutomationProperties.Name="Product need tier"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax category"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TaxCategoryOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding TaxCategory}" AutomationProperties.Name="Product tax category"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="Save product" Command="{Binding SaveProductCommand}" AutomationProperties.Name="Save product"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Deactivate without deleting history" Command="{Binding DeactivateProductCommand}" AutomationProperties.Name="Deactivate product"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Price observation"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Shelf price"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ShelfPrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Shelf price"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Loyalty or sale price"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SalePrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sale price"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Retailer"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Retailer, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Retailer"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax collection"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TaxCollectionOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding TaxCollection}" AutomationProperties.Name="Tax collection method"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Excise already in the shelf price" IsChecked="{Binding ExciseEmbedded}" AutomationProperties.Name="Excise embedded in shelf price"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Record price" Command="{Binding SavePriceCommand}" AutomationProperties.Name="Record price observation"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding CategorySuggestion}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Products}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ListRow}">
+                            <StackPanel>
+                                <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                <TextBlock Style="{StaticResource HintText}">
+                                    <Run Text="{Binding Category, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Brand, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Size, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Status, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Prices}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ListRow}">
+                            <StackPanel>
+                                <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Product}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Unit}"/>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                    <Run Text="{Binding Retailer, Mode=OneWay}"/>
+                                    <Run Text=" · shelf "/><Run Text="{Binding Shelf, Mode=OneWay}"/>
+                                    <Run Text=" · working "/><Run Text="{Binding Working, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Observed, Mode=OneWay}"/>
+                                    <Run Text=" · "/><Run Text="{Binding Freshness, Mode=OneWay}"/>
+                                </TextBlock>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding TaxNote}"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

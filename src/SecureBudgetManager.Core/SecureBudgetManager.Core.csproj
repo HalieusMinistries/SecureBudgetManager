@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>SecureBudgetManager.Core</RootNamespace>
+    <AssemblyName>SecureBudgetManager.Core</AssemblyName>
+    <Description>Domain models, interfaces, validation and financial-calculation rules. No UI, storage or network access.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Remove="System.Net.Http" />
+  </ItemGroup>
+
+</Project>

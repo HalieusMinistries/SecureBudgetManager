@@ -1,0 +1,124 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.AllocationRulesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Income basis"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding BasisOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding Basis}"
+                              AutomationProperties.Name="Income basis"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}"
+                              Margin="0,12,0,0"
+                              Content="Allow optimistic income to fund essential obligations"
+                              IsChecked="{Binding OptimisticMayFundEssentials}"
+                              AutomationProperties.Name="Optimistic income may fund essentials"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Leave this off unless the household has accepted that a quieter week would leave essentials short."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Household safety buffer"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SafetyBuffer, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Safety buffer"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Discretionary method"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding MethodOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding DiscretionaryMethod}"
+                              AutomationProperties.Name="Discretionary method"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Same discretionary percentage of each person's remaining income"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DiscretionaryPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Discretionary percent"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Fixed discretionary amount for each eligible earner"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding FixedDiscretionary, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fixed discretionary amount"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Shared household entertainment each payday"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SharedEntertainment, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Shared entertainment"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Flexible savings each payday"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding FlexibleSavings, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Flexible savings"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Household agreement notes"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Allocation notes"/>
+                    <TextBlock Style="{StaticResource CardTitle}" Margin="0,16,0,0" Text="Positive funding order"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding DefaultFundingText}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Chosen funding order"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ChosenFundingText}"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding FundingBucketOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SelectedFundingBucket}"
+                              AutomationProperties.Name="Funding bucket to move"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Move earlier" Command="{Binding MoveFundingEarlierCommand}" AutomationProperties.Name="Move funding bucket earlier"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Move later" Command="{Binding MoveFundingLaterCommand}" AutomationProperties.Name="Move funding bucket later"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Restore default funding order" Command="{Binding RestoreDefaultFundingCommand}" AutomationProperties.Name="Restore default funding order"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Margin="0,16,0,0" Text="Shortfall reduction order"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding DefaultReductionText}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Chosen reduction order"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ChosenReductionText}"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding ReductionBucketOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SelectedReductionBucket}"
+                              AutomationProperties.Name="Reduction bucket to move"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Move earlier" Command="{Binding MoveReductionEarlierCommand}" AutomationProperties.Name="Move reduction bucket earlier"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Move later" Command="{Binding MoveReductionLaterCommand}" AutomationProperties.Name="Move reduction bucket later"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Restore default reduction order" Command="{Binding RestoreDefaultReductionCommand}" AutomationProperties.Name="Restore default reduction order"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource CardBody}" Margin="0,12,0,0" TextWrapping="Wrap" Text="{Binding OrderEffectText}"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save allocation rules" Command="{Binding SaveRulesCommand}" AutomationProperties.Name="Save allocation rules"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Needs hierarchy"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Higher tiers are protected first. Lower-tier spending is allowed; it is not judged. Change a category only when this household's meaning differs from the default."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Category name"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CategoryName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hierarchy category"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tier"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TierOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding CategoryTier}"
+                              AutomationProperties.Name="Need tier"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Always protect this category" IsChecked="{Binding CategoryAlwaysProtected}" AutomationProperties.Name="Always protect category"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="Save category rule" Command="{Binding SaveHierarchyRuleCommand}" AutomationProperties.Name="Save hierarchy rule"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Restore defaults" Command="{Binding RestoreDefaultHierarchyCommand}" AutomationProperties.Name="Restore default hierarchy"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding HierarchyRules}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource ListRow}">
+                            <StackPanel>
+                                <TextBlock Text="{Binding Category}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold"/>
+                                <TextBlock Style="{StaticResource HintText}">
+                                    <Run Text="{Binding Tier, Mode=OneWay}"/>
+                                    <Run Text=" · "/>
+                                    <Run Text="{Binding Protected, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

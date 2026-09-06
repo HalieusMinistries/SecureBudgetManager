@@ -1,0 +1,199 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.AllocationsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Due-date-aware reservations"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding Totals}"/>
+                    <ItemsControl ItemsSource="{Binding Reservations}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                            <Run Text="{Binding Name, Mode=OneWay}"/>
+                                            <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Amount due "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
+                                            <Run Text=" · already reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
+                                            <Run Text=" · paydays remaining "/><Run Text="{Binding PaydaysRemaining, Mode=OneWay}"/>
+                                            <Run Text=" · required now "/><Run Text="{Binding RequiredNow, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="{Binding Status, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Tier, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Record what is already set aside"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Recording a reserve stops the next payday being told to save for the same bill twice."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Obligation"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Reservations}"
+                              DisplayMemberPath="Name"
+                              SelectedItem="{Binding SelectedReservation}"
+                              AutomationProperties.Name="Obligation to record a reserve against"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount already set aside"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding ReserveAmount, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Amount already set aside"/>
+                    <CheckBox Margin="0,10,0,0"
+                              Content="Keep this money out of safe-to-spend"
+                              IsChecked="{Binding ReserveIsProtected}"
+                              AutomationProperties.Name="Keep this reserve out of safe to spend"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Save reserve"
+                            Command="{Binding SaveReserveCommand}"
+                            AutomationProperties.Name="Save the recorded reserve"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Shared cost contributions"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding SplitSummary}"/>
+                    <ItemsControl ItemsSource="{Binding Shares}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                            <Run Text="{Binding Name, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Percent, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Amount, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Proportional result "/><Run Text="{Binding DefaultAmount, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Difference, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding RoundingNote}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding OverrideSummary}"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding RoundingSummary}"/>
+                    <ItemsControl ItemsSource="{Binding SplitWarnings}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Transfer between personal balances"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Nothing here happens automatically. A transfer moves money only between the two people you name."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="From"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Members}"
+                              DisplayMemberPath="Name"
+                              SelectedItem="{Binding TransferFrom}"
+                              AutomationProperties.Name="Transfer sender"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="To"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Members}"
+                              DisplayMemberPath="Name"
+                              SelectedItem="{Binding TransferTo}"
+                              AutomationProperties.Name="Transfer recipient"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding TransferAmount, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Transfer amount"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Date"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}"
+                                SelectedDate="{Binding TransferDate}"
+                                AutomationProperties.Name="Transfer date"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Purpose or note"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding TransferPurpose, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Transfer purpose"/>
+                    <CheckBox Margin="0,10,0,0"
+                              Content="This transfer repeats"
+                              IsChecked="{Binding TransferIsRecurring}"
+                              AutomationProperties.Name="This transfer repeats"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TransferFrequencies}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding TransferFrequency}"
+                              AutomationProperties.Name="Transfer frequency"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Record transfer"
+                            Command="{Binding AddTransferCommand}"
+                            AutomationProperties.Name="Record the transfer"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Recorded transfers"/>
+                    <ItemsControl ItemsSource="{Binding Transfers}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                                <Run Text="{Binding From, Mode=OneWay}"/>
+                                                <Run Text=" to "/><Run Text="{Binding To, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Amount, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="{Binding Date, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Recurrence, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Purpose, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Remove"
+                                                Command="{Binding DataContext.RemoveTransferCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="Remove this transfer"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

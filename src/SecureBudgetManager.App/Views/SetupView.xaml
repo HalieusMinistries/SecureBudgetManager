@@ -1,0 +1,28 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.SetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="32,24">
+        <StackPanel MaxWidth="520" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Style="{StaticResource PageKicker}" Text="LOCAL ONLY"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="Stored on this computer"/>
+            <TextBlock Style="{StaticResource PageLead}"
+                       Text="Secure Budget Manager opens the local SQLite household database directly. There is no vault password and no encrypted first-run setup."/>
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Household figures stay in a local file on this computer. Anyone with access to that file may read them. There is no cloud copy."/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,20,0,0"
+                            Content="Continue to Dashboard"
+                            IsDefault="True"
+                            Command="{Binding ContinueCommand}"
+                            AutomationProperties.Name="Continue to Dashboard"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

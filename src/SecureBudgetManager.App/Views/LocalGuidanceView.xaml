@@ -1,0 +1,250 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.LocalGuidanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Where the household is"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding LocalitySummary}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="State"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding HouseholdState, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Household state"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="County or metropolitan area"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding HouseholdCounty, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Household county"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="City or locality"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding HouseholdCity, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Household city"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Save locality"
+                            Command="{Binding SaveLocalityCommand}"
+                            AutomationProperties.Name="Save the household locality"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Starter guidance pack"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding PackSummary}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="The pack is compiled into the application and works offline. Importing it does not upload household names, income, expenses or budget results."/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Import starter guidance pack"
+                            Command="{Binding ImportStarterPackCommand}"
+                            AutomationProperties.Name="Import the bundled starter guidance pack"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Review state"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding ReviewSummary}"/>
+                    <ItemsControl ItemsSource="{Binding ReviewWarnings}" Margin="0,6,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Add placeholders for the grocery categories"
+                            Command="{Binding AddPlaceholdersCommand}"
+                            AutomationProperties.Name="Add placeholder records for the grocery categories"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Enter or edit a figure"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Choose a record below to edit it, or leave the selection empty to add a new one."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Your chosen amount (override)"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding UserSelected, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="User selected guidance amount"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              IsEditable="True"
+                              ItemsSource="{Binding CategoryChoices}"
+                              Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}"
+                              AutomationProperties.Name="Guidance category"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Low"/>
+                            <TextBox Style="{StaticResource FormTextBox}"
+                                     Text="{Binding Low, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Low amount"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Typical"/>
+                            <TextBox Style="{StaticResource FormTextBox}"
+                                     Text="{Binding Typical, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Typical amount"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="4">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Comfortable"/>
+                            <TextBox Style="{StaticResource FormTextBox}"
+                                     Text="{Binding Comfortable, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Comfortable amount"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Source"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding SourceName, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Source of the figure"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Kind of source"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding SourceTypes}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SourceType}"
+                              AutomationProperties.Name="Kind of source"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Confidence"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Confidences}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding Confidence}"
+                              AutomationProperties.Name="Confidence in the figure"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Observed or published on"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}"
+                                SelectedDate="{Binding ObservedOn}"
+                                AutomationProperties.Name="Date observed or published"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Effective from"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}"
+                                SelectedDate="{Binding EffectiveDate}"
+                                AutomationProperties.Name="Effective date"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Review by"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}"
+                                SelectedDate="{Binding ReviewByDate}"
+                                AutomationProperties.Name="Review by date"/>
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Priced for adults"/>
+                            <TextBox Style="{StaticResource FormTextBox}"
+                                     Text="{Binding Adults, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Adults the figure is priced for"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Priced for children"/>
+                            <TextBox Style="{StaticResource FormTextBox}"
+                                     Text="{Binding Children, UpdateSourceTrigger=PropertyChanged}"
+                                     AutomationProperties.Name="Children the figure is priced for"/>
+                        </StackPanel>
+                    </Grid>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Applies to state"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding RecordState, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="State the figure applies to"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Applies to county"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding RecordCounty, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="County the figure applies to"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Applies to city"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding RecordCity, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="City the figure applies to"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Notes"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Notes about the figure"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Save guidance"
+                            Command="{Binding SaveRecordCommand}"
+                            AutomationProperties.Name="Save the guidance record"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Recorded guidance"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding Records}"
+                              DisplayMemberPath="Category"
+                              SelectedItem="{Binding SelectedRecord}"
+                              AutomationProperties.Name="Guidance record to edit"/>
+                    <ItemsControl ItemsSource="{Binding Records}" Margin="0,10,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                                <Run Text="{Binding Category, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding ReviewState, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Amounts}"/>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="{Binding Source, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding SourceType, Mode=OneWay}"/>
+                                                <Run Text=" · observed "/><Run Text="{Binding Observed, Mode=OneWay}"/>
+                                                <Run Text=" · effective "/><Run Text="{Binding Effective, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="{Binding Locality, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Composition, Mode=OneWay}"/>
+                                                <Run Text=" · confidence "/><Run Text="{Binding Confidence, Mode=OneWay}"/>
+                                                <Run Text=" · reviewed "/><Run Text="{Binding LastReviewed, Mode=OneWay}"/>
+                                                <Run Text=" · review by "/><Run Text="{Binding ReviewBy, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="Pack "/><Run Text="{Binding PackVersion, Mode=OneWay}"/>
+                                                <Run Text=" · chosen "/><Run Text="{Binding UserSelected, Mode=OneWay}"/>
+                                                <Run Text=" · difference "/><Run Text="{Binding Difference, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Notes}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource SecondaryButton}"
+                                                Content="Remove"
+                                                Command="{Binding DataContext.RemoveRecordCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="Remove this guidance record"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

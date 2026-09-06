@@ -1,0 +1,280 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.ThisWeekView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Essential coverage"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding EssentialsExplanation}"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                        <Run Text="Required "/><Run Text="{Binding EssentialRequiredText, Mode=OneWay}"/>
+                        <Run Text=" · funded "/><Run Text="{Binding EssentialFundedText, Mode=OneWay}"/>
+                        <Run Text=" · unfunded "/><Run Text="{Binding EssentialUnfundedText, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Conservative income can limit what is assigned. It never reduces or conceals the amount required."/>
+                </StackPanel>
+            </Border>
+
+            <UniformGrid Columns="2">
+                <Border Style="{StaticResource Card}" Margin="0,0,8,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Safe to spend"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding SafeToSpendText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="{Binding ValidThroughText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="{Binding IncomeBasisText}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Must not be spent"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding MustNotSpendText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="{Binding SafetyLabel}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="{Binding SafetyExplanation}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasShortfall, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Shortfall"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Foreground="{StaticResource Brush.Danger}"
+                               Text="{Binding ShortfallHeadline}"/>
+                    <ItemsControl ItemsSource="{Binding Shortfalls}" Margin="0,8,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                        <TextBlock Style="{StaticResource HintText}">
+                                            <Run Text="Missing "/><Run Text="{Binding Amount, Mode=OneWay}"/>
+                                            <Run Text=" by "/><Run Text="{Binding Date, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Tier, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="What to do"/>
+                    <ItemsControl ItemsSource="{Binding Recommendations}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}"
+                                                   FontWeight="SemiBold"
+                                                   TextWrapping="Wrap"
+                                                   Text="{Binding Instruction}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="{Binding Urgency, Mode=OneWay}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding Effect, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Money in"/>
+                    <ItemsControl ItemsSource="{Binding MoneyIn}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}">
+                                            <Run Text="{Binding Label, Mode=OneWay}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding Amount, Mode=OneWay}" FontWeight="SemiBold"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Detail}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Household this week"/>
+                    <ItemsControl ItemsSource="{Binding Household}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}">
+                                            <Run Text="{Binding Label, Mode=OneWay}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding Amount, Mode=OneWay}" FontWeight="SemiBold"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Detail}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Style="{StaticResource HintText}" Margin="0,8,0,0" TextWrapping="Wrap" Text="{Binding ReconciliationText}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Each earner"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Personal money comes from each person's own income. Only members you have marked as eligible receive an allowance."/>
+                    <ItemsControl ItemsSource="{Binding People}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Name}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Gross "/><Run Text="{Binding Gross, Mode=OneWay}"/>
+                                            <Run Text=" · Taxes "/><Run Text="{Binding Taxes, Mode=OneWay}"/>
+                                            <Run Text=" · Deductions "/><Run Text="{Binding Deductions, Mode=OneWay}"/>
+                                            <Run Text=" · Benefits "/><Run Text="{Binding Benefits, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Usable net "/><Run Text="{Binding UsableNet, Mode=OneWay}"/>
+                                            <Run Text=" · Contribution "/><Run Text="{Binding ContributionPercent, Mode=OneWay}"/>
+                                            <Run Text=" · Share of shared costs "/><Run Text="{Binding SharedShare, Mode=OneWay}"/>
+                                            <Run Text=" · Individual obligations "/><Run Text="{Binding IndividualObligations, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                            <Run Text="Savings "/><Run Text="{Binding Savings, Mode=OneWay}"/>
+                                            <Run Text=" · Allowance "/><Run Text="{Binding Allowance, Mode=OneWay}"/>
+                                            <Run Text=" · Spent "/><Run Text="{Binding SpendingUsed, Mode=OneWay}"/>
+                                            <Run Text=" · Remaining "/><Run Text="{Binding RemainingBalance, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Basis}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="What protects the money you must not spend"/>
+                    <ItemsControl ItemsSource="{Binding Protections}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}">
+                                            <Run Text="{Binding Label, Mode=OneWay}"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding Amount, Mode=OneWay}" FontWeight="SemiBold"/>
+                                            <Run Text=" · "/>
+                                            <Run Text="{Binding Tier, Mode=OneWay}"/>
+                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Reason}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasWarnings, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Warnings"/>
+                    <ItemsControl ItemsSource="{Binding Warnings}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMissingInformation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Missing information"/>
+                    <ItemsControl ItemsSource="{Binding MissingInformation}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Check a purchase"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding TestAmount, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Amount to check against safe to spend"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Check this spending"
+                            Command="{Binding TestSpendingCommand}"
+                            AutomationProperties.Name="Check whether this spending is safe"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding TestResult}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="How this was worked out"/>
+                    <Button Style="{StaticResource SecondaryButton}"
+                            HorizontalAlignment="Left"
+                            Content="Show or hide the full explanation"
+                            Command="{Binding ToggleExplanationCommand}"
+                            AutomationProperties.Name="Show or hide the full explanation"/>
+                    <StackPanel Margin="0,12,0,0"
+                                Visibility="{Binding ShowExplanation, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Inputs used"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationInputs}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Dates considered"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationDates}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Obligations protected"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationProtected}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Calculations performed"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationCalculations}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Assumptions"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationAssumptions}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Guidance sources"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationSources}"/>
+                        <TextBlock Style="{StaticResource FieldLabel}" Text="Resulting financial effect"/>
+                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding ExplanationEffect}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

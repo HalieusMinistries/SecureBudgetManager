@@ -1,0 +1,108 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+            <TextBlock Style="{StaticResource HintText}" Text="{Binding VersionText}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Automatic privacy screen"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="After this time without activity, figures are hidden on screen. This is not database encryption. Restarting still opens the Dashboard."/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TimeoutOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SelectedTimeoutMinutes}"
+                              AutomationProperties.Name="Automatic privacy duration"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Planning assumptions"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Minimum desired bank balance"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MinimumBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Minimum bank balance"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Emergency-fund target (months of essential spending)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EmergencyMonths, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Emergency fund months"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save assumptions" Command="{Binding SavePlanningAssumptionsCommand}" AutomationProperties.Name="Save planning assumptions"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Local database backup"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding PrivacyNote}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="Create backup" Click="OnCreateBackup" AutomationProperties.Name="Create local database backup"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Restore backup" Click="OnRestoreBackup" AutomationProperties.Name="Restore local database backup"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Local storage"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding StorageNote}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Portable export and import"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="CSV files contain household financial information. Anyone with the file may read it. Store it only in a trusted location. Import shows a preview before anything is written."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource SecondaryButton}" Content="Export CSV" Click="OnExport" AutomationProperties.Name="Export CSV"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Preview import" Click="OnPreviewImport" AutomationProperties.Name="Preview import"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Import" Click="OnImport" AutomationProperties.Name="Import CSV"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding ImportPreview}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Page capture"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Export the current page, including content below the scrollbar, as a PNG file. PNG screenshots contain household financial information. Anyone with the file may read it."/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Content="Capture full page"
+                                Command="{Binding DataContext.CaptureFullPageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                AutomationProperties.Name="Capture full page"/>
+                        <TextBlock Style="{StaticResource HintText}"
+                                   Text="Ctrl+S"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Database"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding DatabaseInfo}"/>
+                    <Button Style="{StaticResource DangerButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Clear all household data" Command="{Binding ClearAllDataCommand}" AutomationProperties.Name="Clear all household data"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Margin="0">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Privacy"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="There is no cloud account, no analytics, no bank login and no place to store bank passwords. The Privacy screen hides figures on screen only. Uninstalling the programme must leave the local database in local application data."/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

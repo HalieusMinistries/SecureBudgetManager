@@ -1,0 +1,282 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.PayrollView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding ShowEmptyState, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="No adult members yet"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Add an adult household member before recording payroll deductions or benefits."/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMember, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Household member" Margin="0,0,0,4"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding MemberOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding SelectedMemberId}"
+                              AutomationProperties.Name="Payroll member"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding PayFrequencyLabel}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMember, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Withholding and tax year"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding TaxTableNote}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax year"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TaxYearOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding TaxYear}"
+                              AutomationProperties.Name="Tax year"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Federal filing status"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding FilingStatusOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding FilingStatus}"
+                              AutomationProperties.Name="Filing status"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Qualifying children (W-4 step 3)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding QualifyingChildren, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Qualifying children"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Other dependants"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding OtherDependants, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Other dependants"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Extra withholding per pay period"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ExtraWithholding, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Extra withholding"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Other annual income (W-4 step 4a)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding OtherAnnualIncome, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Other annual income"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Annual deductions beyond the standard deduction (W-4 step 4b)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualDeductions, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Annual W4 deductions"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="State flat withholding rate (%) — unused when Utah Publication 14 is selected"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding StateRatePercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="State withholding percent"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="United States tax residency (explicit; never inferred)"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TaxResidencyOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding TaxResidency}"
+                              AutomationProperties.Name="United States tax residency"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Use Utah Publication 14 withholding formula" IsChecked="{Binding UsesUtahWithholding}" AutomationProperties.Name="Use Utah Publication 14 withholding"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Multiple jobs or working spouse (W-4 step 2)" IsChecked="{Binding MultipleJobsChecked}" AutomationProperties.Name="Multiple jobs"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Non-resident alien W-4 treatment (Notice 1392)" IsChecked="{Binding IsNonResidentAlien}" AutomationProperties.Name="Non-resident alien"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" Content="Save withholding" Command="{Binding SaveWithholdingCommand}" AutomationProperties.Name="Save withholding"/>
+                        <Button Style="{StaticResource SecondaryButton}" Content="Use Utah Publication 14 withholding" Command="{Binding ApplyUtahWithholdingCommand}" AutomationProperties.Name="Use Utah Publication 14 withholding"/>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding UtahWithholdingSummary}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding EstimatedNetPayText}"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMember, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="401(k) employee contribution"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employee contribution (% of gross)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EmployeeContributionPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employee 401k percent"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employer match (% of gross)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EmployerMatchPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employer match percent"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employer match limit (% of gross)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EmployerMatchLimitPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employer match limit percent"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}"
+                              Margin="0,12,0,0"
+                              Content="Roth 401(k) (employee contribution is post-tax)"
+                              IsChecked="{Binding IsRoth}"
+                              AutomationProperties.Name="Roth 401k"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding EmployerMatchSummary}"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Save 401(k)"
+                            Command="{Binding SaveRetirementCommand}"
+                            AutomationProperties.Name="Save 401k settings"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMember, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Payroll deductions"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Fixed amounts taken each pay period. Choose pre-tax including FICA (Section 125), pre-tax income tax only (traditional 401(k) extras), or post-tax."/>
+
+                    <ItemsControl ItemsSource="{Binding Deductions}" Margin="0,12,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Style="{StaticResource HintText}">
+                                                <Run Text="{Binding Amount, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Treatment, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource DangerButton}"
+                                                Padding="10,6"
+                                                FontSize="12"
+                                                Content="Remove"
+                                                Command="{Binding DataContext.RemoveDeductionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="Remove deduction"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Deduction name"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DeductionName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Deduction name"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount each pay period"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DeductionAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Deduction amount"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax treatment"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TreatmentOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding DeductionTreatment}"
+                              AutomationProperties.Name="Deduction tax treatment"/>
+                    <Button Style="{StaticResource PrimaryButton}"
+                            Margin="0,12,0,0"
+                            HorizontalAlignment="Left"
+                            Content="Add deduction"
+                            Command="{Binding AddDeductionCommand}"
+                            AutomationProperties.Name="Add payroll deduction"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasMember, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Benefits and insurance" VerticalAlignment="Center" Margin="0"/>
+                        <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Add benefit" Command="{Binding BeginAddBenefitCommand}" AutomationProperties.Name="Add benefit"/>
+                    </Grid>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Medical, dental, vision and voluntary plans are stored separately from other payroll deductions. Employee premiums affect take-home pay; employer contributions do not."/>
+
+                    <ItemsControl ItemsSource="{Binding Benefits}" Margin="0,12,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding Name}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                                            <TextBlock Style="{StaticResource HintText}">
+                                                <Run Text="{Binding Kind, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Premium, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Frequency, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Weekly, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Annual, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Coverage, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Dates, Mode=OneWay}"/>
+                                                <Run Text=" · "/>
+                                                <Run Text="{Binding Status, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource CompactButton}" Content="Edit"
+                                                    Command="{Binding DataContext.BeginEditBenefitCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="Edit benefit"/>
+                                            <Button Style="{StaticResource DangerButton}" Padding="10,6" FontSize="12" Content="Remove"
+                                                    Command="{Binding DataContext.RemoveBenefitCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="Remove benefit"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding ShowBenefitEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="{Binding BenefitEditorTitle}"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Benefit name"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit name"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding BenefitKindOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding BenefitKind}"
+                              AutomationProperties.Name="Benefit kind"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employee premium each period"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitPremium, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employee premium"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Premium frequency"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding FrequencyOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding BenefitFrequency}"
+                              AutomationProperties.Name="Benefit premium frequency"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax treatment"/>
+                    <ComboBox Style="{StaticResource FormComboBox}"
+                              ItemsSource="{Binding TreatmentOptions}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Value"
+                              SelectedValue="{Binding BenefitTreatment}"
+                              AutomationProperties.Name="Benefit tax treatment"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employer contribution each period (not take-home)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitEmployerContribution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employer benefit contribution"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Coverage amount (life, AD&amp;D, critical illness)"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitCoverageAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit coverage amount"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Effective date"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitEffectiveDate}" AutomationProperties.Name="Benefit effective date"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Renewal or end date (optional)"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitRenewalDate}" AutomationProperties.Name="Benefit renewal date"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Content="Save benefit" Command="{Binding SaveBenefitCommand}" AutomationProperties.Name="Save benefit"/>
+                        <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Content="Cancel" Command="{Binding CancelBenefitCommand}" AutomationProperties.Name="Cancel benefit editor"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource ErrorCard}"
+                    Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Style="{StaticResource CardBody}" Foreground="{StaticResource Brush.Text}" Text="{Binding ErrorMessage}"/>
+            </Border>
+            <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}" Visibility="{Binding StatusMessage, Converter={StaticResource NullToVisibilityConverter}}"/>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

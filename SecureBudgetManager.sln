@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EE47A295-4A48-42D6-9105-525D58CA4CD7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureBudgetManager.Core", "src\SecureBudgetManager.Core\SecureBudgetManager.Core.csproj", "{B2F176B2-11D2-4670-A94D-905C92E53956}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureBudgetManager.Infrastructure", "src\SecureBudgetManager.Infrastructure\SecureBudgetManager.Infrastructure.csproj", "{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureBudgetManager.App", "src\SecureBudgetManager.App\SecureBudgetManager.App.csproj", "{2F8D4E4E-5292-400C-ADA0-301701D9ECAD}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{03DE2F29-8B1B-4A4B-8FFD-C9722951A606}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureBudgetManager.Tests", "tests\SecureBudgetManager.Tests\SecureBudgetManager.Tests.csproj", "{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SecureBudgetManager.App.Tests", "tests\SecureBudgetManager.App.Tests\SecureBudgetManager.App.Tests.csproj", "{72C2ED69-E2C7-4F73-B257-EB43FC4B981B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B2F176B2-11D2-4670-A94D-905C92E53956}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2F176B2-11D2-4670-A94D-905C92E53956}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2F176B2-11D2-4670-A94D-905C92E53956}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2F176B2-11D2-4670-A94D-905C92E53956}.Release|Any CPU.Build.0 = Release|Any CPU
+		{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F8D4E4E-5292-400C-ADA0-301701D9ECAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F8D4E4E-5292-400C-ADA0-301701D9ECAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F8D4E4E-5292-400C-ADA0-301701D9ECAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F8D4E4E-5292-400C-ADA0-301701D9ECAD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72C2ED69-E2C7-4F73-B257-EB43FC4B981B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72C2ED69-E2C7-4F73-B257-EB43FC4B981B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72C2ED69-E2C7-4F73-B257-EB43FC4B981B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72C2ED69-E2C7-4F73-B257-EB43FC4B981B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B2F176B2-11D2-4670-A94D-905C92E53956} = {EE47A295-4A48-42D6-9105-525D58CA4CD7}
+		{05844CFC-DE0D-4279-B93B-E7BC01E9EAD6} = {EE47A295-4A48-42D6-9105-525D58CA4CD7}
+		{2F8D4E4E-5292-400C-ADA0-301701D9ECAD} = {EE47A295-4A48-42D6-9105-525D58CA4CD7}
+		{0DE53C47-E4E2-49B3-AFE7-1E4CE137E3AB} = {03DE2F29-8B1B-4A4B-8FFD-C9722951A606}
+		{72C2ED69-E2C7-4F73-B257-EB43FC4B981B} = {03DE2F29-8B1B-4A4B-8FFD-C9722951A606}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,71 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.ForeignAccountsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="24,20">
+        <StackPanel>
+            <TextBlock Style="{StaticResource PageKicker}" Text="{Binding Kicker}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
+            <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Foreign account"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Institution"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Institution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign institution"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Country"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Country, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account country"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Nickname or masked identifier"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account nickname"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Currency"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Currency, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account currency"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Maximum calendar-year balance"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MaximumBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Maximum calendar year balance"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Year-end balance"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding YearEndBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Year end balance"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Financial interest" IsChecked="{Binding HasFinancialInterest}" AutomationProperties.Name="Financial interest"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Signature authority" IsChecked="{Binding HasSignatureAuthority}" AutomationProperties.Name="Signature authority"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save foreign account" Command="{Binding SaveAccountCommand}" AutomationProperties.Name="Save foreign account"/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Possible reporting reminders"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax year"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ReminderYear, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Reporting tax year"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Filing status"/>
+                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding FilingOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding FilingStatus}" AutomationProperties.Name="Reporting filing status"/>
+                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Lives in the United States" IsChecked="{Binding LivesInUnitedStates}" AutomationProperties.Name="Lives in the United States"/>
+                    <ItemsControl ItemsSource="{Binding Reminders}" Margin="0,12,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource ListRow}">
+                                    <StackPanel>
+                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold" Text="{Binding Form}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Message}"/>
+                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Source}"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Supporting document reference"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Title"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DocumentTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Supporting document title"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
+                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DocumentKind, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Supporting document kind"/>
+                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save document reference" Command="{Binding SaveDocumentCommand}" AutomationProperties.Name="Save supporting document reference"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
