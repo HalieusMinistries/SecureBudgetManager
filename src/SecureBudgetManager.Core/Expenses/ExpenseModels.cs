@@ -94,6 +94,12 @@ public sealed record ExpenseItem
     public bool DueDateUnknown { get; init; }
 
     /// <summary>
+    /// When false, only <see cref="AnchorDueDate"/> is treated as a known due date. Later dates
+    /// are not generated until the household confirms the recurring rule.
+    /// </summary>
+    public bool ScheduleConfirmed { get; init; } = true;
+
+    /// <summary>
     /// Archived expenses keep history but generate no new cash-flow events. Distinct from a
     /// temporary pause.
     /// </summary>
@@ -151,6 +157,15 @@ public sealed record ExpenseItem
         }
 
         var anchor = AutopayAnchorDate ?? AnchorDueDate;
+        if (!ScheduleConfirmed)
+        {
+            return anchor >= from && anchor <= effectiveTo
+                ? [DueDateAdjustment == DueDateAdjustment.None
+                    ? anchor
+                    : BusinessDayCalendar.Adjust(anchor, DueDateAdjustment)]
+                : [];
+        }
+
         var raw = RecurrenceSchedule.Enumerate(Frequency, anchor, from, effectiveTo);
         return DueDateAdjustment == DueDateAdjustment.None
             ? raw

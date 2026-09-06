@@ -12,10 +12,13 @@ public sealed record ReservationRow(
     Guid ObligationId,
     ObligationKind Kind,
     string Name,
+    string Owner,
+    string Classification,
     string DueDate,
     string AmountDue,
+    string AmountPaid,
     string AlreadyReserved,
-    string PaydaysRemaining,
+    string StillRequired,
     string RequiredNow,
     string Status,
     string Tier,
@@ -50,10 +53,10 @@ public sealed partial class AllocationsViewModel : PageViewModel
 
     public AllocationsViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
-            "Allocations",
-            "Reservations",
-            "What each future obligation needs from the paycheque in hand, how shared costs are " +
-            "divided between earners, and what has already been set aside.")
+            "Bills & Reservations",
+            "Obligations",
+            "Paid, reserved and still owed stay separate. Reserved money remains in the bank " +
+            "but is excluded from safe-to-spend.")
     {
         _session = session;
         _dialog = dialog;
@@ -303,19 +306,24 @@ public sealed partial class AllocationsViewModel : PageViewModel
 
         Members = document.Members;
 
-        Reservations = allocation.Reservations.Lines
+        var register = ObligationRegister.Build(document, today);
+
+        Reservations = register.Lines
             .Select(line => new ReservationRow(
-                line.Obligation.Id,
-                line.Obligation.Kind,
+                line.Id,
+                line.Kind,
                 line.Name,
-                line.DueDate.ToString("yyyy-MM-dd"),
-                line.AmountDue.ToDisplayString(),
-                line.AlreadyReserved.ToDisplayString(),
-                line.PaydaysRemaining.ToString(),
-                line.RequiredFromThisPaycheque.ToDisplayString(),
-                line.Status.ToDisplayName(),
-                line.Tier.ToDisplayName(),
-                line.Explanation))
+                line.Owner,
+                line.Classification,
+                line.DueDateText,
+                line.AmountRequired.ToDisplayString(),
+                line.AmountPaid.ToDisplayString(),
+                line.AmountReserved.ToDisplayString(),
+                line.StillRequired.ToDisplayString(),
+                line.RequiredFromNextPaycheque.ToDisplayString(),
+                line.StatusText,
+                line.Classification,
+                line.AttentionText))
             .ToList();
 
         var chosen = allocation.SharedSplit;

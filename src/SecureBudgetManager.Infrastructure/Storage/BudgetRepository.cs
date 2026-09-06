@@ -798,6 +798,7 @@ public sealed class BudgetRepository : IBudgetRepository
                 AutopayAnchorDate = SqliteValues.GetNullableDate(reader, "autopay_anchor_date"),
                 IsPaused = SqliteValues.GetBool(reader, "is_paused"),
                 DueDateUnknown = SqliteValues.GetBool(reader, "due_date_unknown"),
+                ScheduleConfirmed = SqliteValues.GetBoolOrDefault(reader, "schedule_confirmed", true),
                 IsArchived = SqliteValues.GetBool(reader, "is_archived"),
                 DueDateAdjustment = SqliteValues.GetEnum<DueDateAdjustment>(reader, "due_date_adjustment"),
                 EndsOn = SqliteValues.GetNullableDate(reader, "ends_on"),
@@ -849,12 +850,12 @@ public sealed class BudgetRepository : IBudgetRepository
                 INSERT INTO expense_item (
                     id, name, category_name, category_is_built_in, expected_amount, frequency,
                     anchor_due_date, necessity, variability, ownership, split_method,
-                    autopay_anchor_date, is_paused, due_date_unknown, is_archived, due_date_adjustment,
+                    autopay_anchor_date, is_paused, due_date_unknown, schedule_confirmed, is_archived, due_date_adjustment,
                     ends_on, notes, annual_increase_percent)
                 VALUES (
                     $id, $name, $category, $builtIn, $amount, $frequency,
                     $anchor, $necessity, $variability, $ownership, $splitMethod,
-                    $autopay, $paused, $dueUnknown, $archived, $adjustment,
+                    $autopay, $paused, $dueUnknown, $scheduleConfirmed, $archived, $adjustment,
                     $ends, $notes, $increase);
                 """))
             {
@@ -874,6 +875,7 @@ public sealed class BudgetRepository : IBudgetRepository
                 command.Parameters.AddWithValue("$autopay", SqliteValues.ToNullable(expense.AutopayAnchorDate));
                 command.Parameters.AddWithValue("$paused", expense.IsPaused ? 1 : 0);
                 command.Parameters.AddWithValue("$dueUnknown", expense.DueDateUnknown ? 1 : 0);
+                command.Parameters.AddWithValue("$scheduleConfirmed", expense.ScheduleConfirmed ? 1 : 0);
                 command.Parameters.AddWithValue("$archived", expense.IsArchived ? 1 : 0);
                 command.Parameters.AddWithValue("$adjustment", (int)expense.DueDateAdjustment);
                 command.Parameters.AddWithValue("$ends", SqliteValues.ToNullable(expense.EndsOn));

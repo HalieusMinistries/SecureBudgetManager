@@ -765,7 +765,12 @@ public static class BudgetSchema
             ALTER TABLE audit_log ADD COLUMN before_summary TEXT;
             ALTER TABLE audit_log ADD COLUMN after_summary TEXT;
             ALTER TABLE audit_log ADD COLUMN user_note TEXT;
-            """)
+            """),
+
+        new SchemaMigration(
+            20,
+            "Expense schedule confirmation, matching unconfirmed pay calendars",
+            "ALTER TABLE expense_item ADD COLUMN schedule_confirmed INTEGER NOT NULL DEFAULT 1;")
     ];
 
     public static int LatestVersion => Migrations.Count;

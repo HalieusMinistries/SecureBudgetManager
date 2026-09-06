@@ -126,6 +126,21 @@ public abstract record IncomeSource
             ? GrossPerPeriod(estimate) * PayFrequency.PaymentsPerYear()
             : GrossPerPeriod(estimate);
 
+    /// <summary>Recurring taxable wages or self-employment. Excludes reimbursements and one-time amounts.</summary>
+    public bool IsRegularWage =>
+        IsActive
+        && IsTaxable
+        && PayFrequency.IsRecurring()
+        && Role is IncomeRole.Wages or IncomeRole.SelfEmployment;
+
+    /// <summary>Mileage and other non-taxable repayments, kept out of regular wages.</summary>
+    public bool IsReimbursementIncome =>
+        IsActive && (!IsTaxable || Role == IncomeRole.Reimbursement);
+
+    /// <summary>A single expected amount that must not be averaged into monthly wages.</summary>
+    public bool IsOneTimeIncome =>
+        IsActive && (Role == IncomeRole.OneTime || !PayFrequency.IsRecurring());
+
     public virtual void Validate()
     {
         if (Id == Guid.Empty)

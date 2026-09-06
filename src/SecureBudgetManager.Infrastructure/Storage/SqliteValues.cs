@@ -100,6 +100,19 @@ internal static class SqliteValues
     public static bool GetBool(SqliteDataReader reader, string column) =>
         reader.GetInt64(reader.GetOrdinal(column)) != 0;
 
+    public static bool GetBoolOrDefault(SqliteDataReader reader, string column, bool fallback)
+    {
+        for (var index = 0; index < reader.FieldCount; index++)
+        {
+            if (string.Equals(reader.GetName(index), column, StringComparison.OrdinalIgnoreCase))
+            {
+                return reader.IsDBNull(index) ? fallback : reader.GetInt64(index) != 0;
+            }
+        }
+
+        return fallback;
+    }
+
     public static int GetInt(SqliteDataReader reader, string column) =>
         (int)reader.GetInt64(reader.GetOrdinal(column));
 

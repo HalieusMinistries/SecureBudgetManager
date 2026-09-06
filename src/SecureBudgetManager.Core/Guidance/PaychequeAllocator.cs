@@ -200,7 +200,8 @@ public sealed record PaychequeAllocation
     public Money PersonalDiscretionaryTotal =>
         Money.Sum(Earners.Select(earner => earner.DiscretionaryAllowance)).Round();
 
-    public Money TotalIn => (AvailableNow + IncomeReceived + IncomeExpectedBeforeNextPayday).Round();
+    /// <summary>Cash already recorded. Projected deposits are not treated as money in hand.</summary>
+    public Money TotalIn => AvailableNow.Round();
 
     public bool HasShortfall => Shortfall is not null;
 
@@ -228,7 +229,8 @@ public static class PaychequeAllocator
         var allocationFrequency = AllocationFrequency(document);
 
         var projection = BuildProjection(document, basis, today);
-        var nextPayday = FindNextPayday(projection, today);
+        var nextPayday = OperationalPositionCalculator.NextConfirmedIncome(document, today)?.Date
+                         ?? FindNextPayday(projection, today);
         var validThrough = nextPayday is { } next ? next.AddDays(-1) : PeriodEnd(today, allocationFrequency);
 
         var availableNow = document.TotalBalance.Round();
@@ -246,24 +248,33 @@ public static class PaychequeAllocator
             : totalIncome;
 
         var additional = Money.Max(Money.Zero, (totalIncome - reliableIncome).Round());
-        var conservativeIn = (availableNow + reliableIncome).Round();
-        var totalIn = (availableNow + totalIncome).Round();
+        var conservativeIn = availableNow.Round();
+        var totalIn = availableNow.Round();
 
         // Obligations are looked at a year ahead so annual bills start reserving in time.
         var paydays = ReservationPlanner.PaydaysBetween(document, today, today.AddYears(1));
         var obligations = ReservationPlanner.ObligationsFrom(document, hierarchy, today, today.AddYears(1));
         var reservations = ReservationPlanner.Plan(obligations, paydays, today, nextPayday);
 
-        var billsDueNow = reservations.TotalDueNow;
-        var laterExpenses = SumOf(reservations.RequiringContribution, ObligationKind.Expense);
-        var minimumDebt = (SumOf(reservations.RequiringContribution, ObligationKind.Debt)
-                           + SumOf(reservations.DueBeforeNextPayday, ObligationKind.Debt)).Round();
-        var requiredSinking = SumOf(reservations.RequiringContribution, ObligationKind.SavingsFund);
+        var dueFromCash = reservations.Lines
+            .Where(line => IsDueFromCashOnHand(line, today, nextPayday))
+            .ToList();
+        var laterReservationLines = reservations.RequiringContribution
+            .Where(line => dueFromCash.All(due => due.Obligation.Id != line.Obligation.Id || due.DueDate != line.DueDate))
+            .ToList();
 
-        // Bills due now already include the debt payments counted above, so remove the overlap.
-        billsDueNow = Money.Max(
-            Money.Zero,
-            (billsDueNow - SumOf(reservations.DueBeforeNextPayday, ObligationKind.Debt)).Round());
+        var billsDueNow = Money.Sum(dueFromCash
+            .Where(line => line.Obligation.Kind == ObligationKind.Expense)
+            .Select(line => line.Obligation.Remaining)).Round();
+        var laterExpenses = SumOf(laterReservationLines, ObligationKind.Expense);
+        var minimumDebt = (SumOf(laterReservationLines, ObligationKind.Debt)
+                           + Money.Sum(dueFromCash
+                               .Where(line => line.Obligation.Kind == ObligationKind.Debt)
+                               .Select(line => line.Obligation.Remaining))).Round();
+        var requiredSinking = (SumOf(laterReservationLines, ObligationKind.SavingsFund)
+                               + Money.Sum(dueFromCash
+                                   .Where(line => line.Obligation.Kind == ObligationKind.SavingsFund)
+                                   .Select(line => line.Obligation.Remaining))).Round();
 
         var grocery = GroceryRequirementFor(document, today, allocationFrequency);
         var spending = EssentialSpendingAllowances(document, hierarchy, allocationFrequency);
@@ -296,20 +307,17 @@ public static class PaychequeAllocator
 
         var mustNotSpend = (protectedCashCalls + protectedSavings + committedFunds + safetyBuffer).Round();
         var essentialRequired = mustNotSpend;
-        var essentialFunded = Money.Min(essentialRequired, conservativeIn);
+        var essentialFunded = Money.Min(essentialRequired, availableNow);
         var essentialUnfunded = Money.Max(Money.Zero, (essentialRequired - essentialFunded).Round());
-        var conservativeRemainder = Money.Max(Money.Zero, (conservativeIn - essentialRequired).Round());
-        var additionalSpendable = rules.OptimisticIncomeMayFundEssentials
-            ? additional
-            : Money.Zero;
+        var conservativeRemainder = Money.Max(Money.Zero, (availableNow - essentialRequired).Round());
         var safeToSpend = essentialUnfunded.IsZero
-            ? (conservativeRemainder + additionalSpendable).Round()
+            ? conservativeRemainder
             : Money.Zero;
 
         var essentials = new EssentialCoverage
         {
             Required = essentialRequired,
-            Available = conservativeIn,
+            Available = availableNow,
             Funded = essentialFunded,
             Unfunded = essentialUnfunded,
             Explanation =
@@ -654,6 +662,7 @@ public static class PaychequeAllocator
             IncomeSources = document.IncomeSources,
             NetPayPerPeriod = takeHome.NetPayPerPeriod,
             Expenses = document.Expenses,
+            Payslips = document.Payslips,
             Assumption = estimate
         });
     }
@@ -811,6 +820,31 @@ public static class PaychequeAllocator
         }
 
         return (savings.Round(), committed.Round());
+    }
+
+    private static bool IsDueFromCashOnHand(
+        ReservationLine line,
+        DateOnly today,
+        DateOnly? nextPayday)
+    {
+        if (line.Obligation.Remaining.IsZero)
+        {
+            return false;
+        }
+
+        if (line.Status is ReservationStatus.DueBeforeNextPayday
+            or ReservationStatus.Overdue
+            or ReservationStatus.Underfunded)
+        {
+            return true;
+        }
+
+        if (nextPayday is { } next && line.DueDate < next)
+        {
+            return true;
+        }
+
+        return line.Obligation.IsEssential && line.DueDate <= today.AddDays(7);
     }
 
     private static Money SumOf(IEnumerable<ReservationLine> lines, ObligationKind kind) =>

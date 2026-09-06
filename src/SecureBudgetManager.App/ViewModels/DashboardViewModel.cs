@@ -2,6 +2,8 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
+using SecureBudgetManager.Core.Guidance;
+using SecureBudgetManager.Core.Models;
 
 namespace SecureBudgetManager.App.ViewModels;
 
@@ -14,7 +16,7 @@ public sealed partial class DashboardViewModel : PageViewModel
         : base(
             "Dashboard",
             "Overview",
-            "Figures are calculated on this device from the local household records. Average monthly is the annual total divided by 12.")
+            "Money available now is cash already recorded. Average monthly surplus is a future forecast and is not spendable today.")
     {
         _session = session;
         _clock = clock;
@@ -36,6 +38,21 @@ public sealed partial class DashboardViewModel : PageViewModel
 
     [ObservableProperty]
     private BudgetOverview overview = BudgetOverviewCalculator.Locked();
+
+    [ObservableProperty]
+    private string availableNowText = string.Empty;
+
+    [ObservableProperty]
+    private string reservedText = string.Empty;
+
+    [ObservableProperty]
+    private string safeToSpendNowText = string.Empty;
+
+    [ObservableProperty]
+    private string nextIncomeText = string.Empty;
+
+    [ObservableProperty]
+    private string spendingSafetyNotice = string.Empty;
 
     public IReadOnlyList<AttentionItem> Attention => Overview.Attention;
 
@@ -61,6 +78,11 @@ public sealed partial class DashboardViewModel : PageViewModel
         if (!_session.IsOpen)
         {
             Overview = BudgetOverviewCalculator.Locked();
+            AvailableNowText = string.Empty;
+            ReservedText = string.Empty;
+            SafeToSpendNowText = string.Empty;
+            NextIncomeText = string.Empty;
+            SpendingSafetyNotice = string.Empty;
             OnPropertyChanged(nameof(Attention));
             OnPropertyChanged(nameof(HasAttention));
             OnPropertyChanged(nameof(IsUnlocked));
@@ -69,6 +91,12 @@ public sealed partial class DashboardViewModel : PageViewModel
 
         var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         Overview = BudgetOverviewCalculator.Build(_session.Document, Period, today);
+        var position = OperationalPositionCalculator.Build(_session.Document, today);
+        AvailableNowText = position.AvailableNow.ToDisplayString();
+        ReservedText = position.Reserved.ToDisplayString();
+        SafeToSpendNowText = position.SafeToSpend.ToDisplayString();
+        NextIncomeText = position.NextIncomeText;
+        SpendingSafetyNotice = position.SafetyNotice;
         OnPropertyChanged(nameof(Attention));
         OnPropertyChanged(nameof(HasAttention));
         OnPropertyChanged(nameof(IsUnlocked));

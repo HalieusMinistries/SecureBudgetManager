@@ -164,6 +164,12 @@ public sealed record ImportIncomeDto
 
     public bool PayScheduleConfirmed { get; init; } = true;
 
+    public DateOnly? StartsOn { get; init; }
+
+    public DateOnly? EndsOn { get; init; }
+
+    public IncomeRole Role { get; init; } = IncomeRole.Wages;
+
     public string? Notes { get; init; }
 
     public decimal? HourlyRate { get; init; }
@@ -204,6 +210,9 @@ public sealed record ImportIncomeDto
             IsTaxable = IsTaxable,
             IsActive = IsActive,
             PayScheduleConfirmed = PayScheduleConfirmed,
+            StartsOn = StartsOn,
+            EndsOn = EndsOn,
+            Role = Role,
             Notes = Notes,
             HourlyRate = new Money(HourlyRate ?? 0m),
             WeeklyHours = new VariableHours(
@@ -226,6 +235,9 @@ public sealed record ImportIncomeDto
             IsTaxable = IsTaxable,
             IsActive = IsActive,
             PayScheduleConfirmed = PayScheduleConfirmed,
+            StartsOn = StartsOn,
+            EndsOn = EndsOn,
+            Role = Role,
             Notes = Notes,
             AmountPerPeriod = new VariableHours(
                 AmountConservative ?? 0m,
@@ -242,6 +254,9 @@ public sealed record ImportIncomeDto
             IsTaxable = false,
             IsActive = IsActive,
             PayScheduleConfirmed = PayScheduleConfirmed,
+            StartsOn = StartsOn,
+            EndsOn = EndsOn,
+            Role = IncomeRole.Reimbursement,
             Notes = Notes,
             MilesPerPeriod = MilesPerPeriod ?? 0m,
             RatePerMile = new Money(RatePerMile ?? 0m)

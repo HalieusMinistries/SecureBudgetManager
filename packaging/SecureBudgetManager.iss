@@ -1,5 +1,5 @@
 #define MyAppName "Secure Budget Manager"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "Secure Budget Manager"
 #define MyAppExeName "SecureBudgetManager.exe"
 #define MyUpgradeCode "8C3F0A61-2E47-4B9A-9D11-6A5F2C8E1B70"
@@ -14,14 +14,14 @@ DefaultDirName={autopf}\Secure Budget Manager
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
-OutputBaseFilename=SecureBudgetManager-1.0.0-win-x64
+OutputBaseFilename=SecureBudgetManager-1.0.1-win-x64
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 UninstallDisplayIcon={app}\{#MyAppExeName}
-VersionInfoVersion=1.0.0.0
+VersionInfoVersion=1.0.1.0
 SetupIconFile=..\src\SecureBudgetManager.App\Assets\app.ico
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes

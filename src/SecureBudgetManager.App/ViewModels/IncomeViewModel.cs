@@ -197,6 +197,10 @@ public sealed partial class IncomeViewModel : PageViewModel
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasEditorChanges))]
+    private DateTime? editorEmploymentStartDate;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEditorChanges))]
     private bool editorIsActive = true;
 
     [ObservableProperty]
@@ -443,7 +447,7 @@ public sealed partial class IncomeViewModel : PageViewModel
         AmountParsing.TryParseDecimal(EditorOvertimeConservative, out var otLow);
         AmountParsing.TryParseDecimal(EditorOvertimeNormal, out var otMid);
         AmountParsing.TryParseDecimal(EditorOvertimeOptimistic, out var otHigh);
-        var (scheduleConfirmed, notes) = ExistingIncomeMeta(id);
+        var meta = ExistingIncomeMeta(id);
 
         return new HourlyIncome
         {
@@ -454,8 +458,13 @@ public sealed partial class IncomeViewModel : PageViewModel
             AnchorPayDate = anchor,
             IsTaxable = isTaxable,
             IsActive = EditorIsActive,
-            PayScheduleConfirmed = scheduleConfirmed,
-            Notes = notes,
+            PayScheduleConfirmed = meta.Confirmed,
+            StartsOn = EditorEmploymentStartDate is { } start
+                ? DateOnly.FromDateTime(start)
+                : meta.StartsOn,
+            EndsOn = meta.EndsOn,
+            Role = meta.Role,
+            Notes = meta.Notes,
             HourlyRate = rate,
             WeeklyHours = new VariableHours(low, mid, high),
             WeeklyOvertimeHours = new VariableHours(otLow, otMid, otHigh),
@@ -480,6 +489,11 @@ public sealed partial class IncomeViewModel : PageViewModel
             IsTaxable = isTaxable,
             IsActive = EditorIsActive,
             PayScheduleConfirmed = ExistingIncomeMeta(id).Confirmed,
+            StartsOn = EditorEmploymentStartDate is { } start
+                ? DateOnly.FromDateTime(start)
+                : ExistingIncomeMeta(id).StartsOn,
+            EndsOn = ExistingIncomeMeta(id).EndsOn,
+            Role = ExistingIncomeMeta(id).Role,
             Notes = ExistingIncomeMeta(id).Notes,
             AnnualSalary = salary
         };
@@ -502,6 +516,11 @@ public sealed partial class IncomeViewModel : PageViewModel
             IsTaxable = isTaxable,
             IsActive = EditorIsActive,
             PayScheduleConfirmed = ExistingIncomeMeta(id).Confirmed,
+            StartsOn = EditorEmploymentStartDate is { } start
+                ? DateOnly.FromDateTime(start)
+                : ExistingIncomeMeta(id).StartsOn,
+            EndsOn = ExistingIncomeMeta(id).EndsOn,
+            Role = ExistingIncomeMeta(id).Role,
             Notes = ExistingIncomeMeta(id).Notes,
             AmountPerPeriod = VariableHours.Fixed(amount)
         };
@@ -529,16 +548,23 @@ public sealed partial class IncomeViewModel : PageViewModel
             IsTaxable = false,
             IsActive = EditorIsActive,
             PayScheduleConfirmed = ExistingIncomeMeta(id).Confirmed,
+            StartsOn = EditorEmploymentStartDate is { } start
+                ? DateOnly.FromDateTime(start)
+                : ExistingIncomeMeta(id).StartsOn,
+            EndsOn = ExistingIncomeMeta(id).EndsOn,
+            Role = IncomeRole.Reimbursement,
             Notes = ExistingIncomeMeta(id).Notes,
             MilesPerPeriod = miles,
             RatePerMile = rate
         };
     }
 
-    private (bool Confirmed, string? Notes) ExistingIncomeMeta(Guid id)
+    private (bool Confirmed, string? Notes, DateOnly? StartsOn, DateOnly? EndsOn, IncomeRole Role) ExistingIncomeMeta(Guid id)
     {
         var existing = _session.Document.IncomeSources.FirstOrDefault(source => source.Id == id);
-        return existing is null ? (true, null) : (existing.PayScheduleConfirmed, existing.Notes);
+        return existing is null
+            ? (true, null, null, null, IncomeRole.Wages)
+            : (existing.PayScheduleConfirmed, existing.Notes, existing.StartsOn, existing.EndsOn, existing.Role);
     }
 
     private void OpenEditor(Guid? id, string title, IncomeSource? source)
@@ -568,6 +594,7 @@ public sealed partial class IncomeViewModel : PageViewModel
             EditorIsTaxable = true;
             EditorIsReimbursement = false;
             EditorStartDate = DateTime.Today;
+            EditorEmploymentStartDate = null;
             EditorIsActive = true;
         }
         else
@@ -590,6 +617,7 @@ public sealed partial class IncomeViewModel : PageViewModel
         EditorIsTaxable = source.IsTaxable;
         EditorIsReimbursement = !source.IsTaxable;
         EditorStartDate = source.AnchorPayDate.ToDateTime(TimeOnly.MinValue);
+        EditorEmploymentStartDate = source.StartsOn?.ToDateTime(TimeOnly.MinValue);
         EditorIsActive = source.IsActive;
 
         switch (source)
@@ -646,6 +674,7 @@ public sealed partial class IncomeViewModel : PageViewModel
         EditorIsTaxable,
         EditorIsReimbursement,
         EditorStartDate,
+        EditorEmploymentStartDate,
         EditorIsActive);
 
     private bool ConfirmDiscardEditor(bool forcePrompt = false)

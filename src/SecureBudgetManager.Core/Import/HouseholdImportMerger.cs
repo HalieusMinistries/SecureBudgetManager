@@ -103,18 +103,19 @@ public static class HouseholdImportMerger
             (left, right) => NamesMatch(left.Name, right.Name) && left.OwnerMemberId == right.OwnerMemberId,
             (left, right) =>
             {
-                if (left.CurrentBalance != right.CurrentBalance && !left.CurrentBalance.IsZero)
+                if (left.CurrentBalance != right.CurrentBalance)
                 {
-                    conflicts.Add($"Account \"{left.Name}\" already has a different balance.");
+                    conflicts.Add($"Account \"{left.Name}\" already has a recorded balance; the incoming figure was not applied.");
+                    return left;
                 }
 
                 return left with
                 {
                     Name = right.Name,
-                    CurrentBalance = right.CurrentBalance,
+                    CurrentBalance = left.CurrentBalance,
                     IsPrimary = right.IsPrimary,
-                    OwnerMemberId = right.OwnerMemberId,
-                    UpdatedOn = right.UpdatedOn
+                    OwnerMemberId = right.OwnerMemberId ?? left.OwnerMemberId,
+                    UpdatedOn = left.UpdatedOn
                 };
             },
             account => account,
@@ -154,7 +155,12 @@ public static class HouseholdImportMerger
             incoming.Payslips.Select(slip => slip with { IncomeSourceId = MapIncome(slip.IncomeSourceId) }).ToList(),
             slip => slip.Id,
             (left, right) => left.IncomeSourceId == right.IncomeSourceId && left.PayDate == right.PayDate,
-            (_, right) => right,
+            (left, right) =>
+                left.GrossPay == right.GrossPay
+                && left.NetPay == right.NetPay
+                && left.HoursWorked == right.HoursWorked
+                    ? left
+                    : right,
             slip => slip,
             slip => $"Payslip {slip.PayDate:yyyy-MM-dd}",
             created,
@@ -166,7 +172,12 @@ public static class HouseholdImportMerger
             incoming.PayrollProfiles.Select(profile => profile with { MemberId = MapMember(profile.MemberId) }).ToList(),
             profile => profile.MemberId,
             (left, right) => left.MemberId == right.MemberId,
-            (_, right) => right,
+            (left, right) =>
+                left.TaxYear == right.TaxYear
+                && left.Retirement.EmployeeContributionPercent == right.Retirement.EmployeeContributionPercent
+                && left.W4IsComplete == right.W4IsComplete
+                    ? left
+                    : right with { MemberId = left.MemberId },
             profile => profile,
             profile => "Payroll profile",
             created,
@@ -189,6 +200,14 @@ public static class HouseholdImportMerger
                     conflicts.Add($"Benefit \"{left.Name}\" already has a different confirmed premium.");
                 }
 
+                if (left.EmployeePremiumPerPeriod == right.EmployeePremiumPerPeriod
+                    && left.IsConfirmed == right.IsConfirmed
+                    && left.EffectiveDate == right.EffectiveDate
+                    && left.PremiumFrequency == right.PremiumFrequency)
+                {
+                    return left;
+                }
+
                 return right with { Id = left.Id, MemberId = left.MemberId };
             },
             benefit => benefit,
@@ -206,10 +225,27 @@ public static class HouseholdImportMerger
             {
                 if (left.ExpectedAmount != right.ExpectedAmount && !left.ExpectedAmount.IsZero)
                 {
-                    conflicts.Add($"Expense \"{left.Name}\" already has a different amount.");
+                    conflicts.Add($"Expense \"{left.Name}\" already has a different amount; the existing figure was kept.");
+                    return left;
                 }
 
-                return right with { Id = left.Id };
+                if (left.ExpectedAmount == right.ExpectedAmount
+                    && left.Frequency == right.Frequency
+                    && left.DueDateUnknown == right.DueDateUnknown
+                    && left.Necessity == right.Necessity
+                    && left.Variability == right.Variability
+                    && left.ScheduleConfirmed == right.ScheduleConfirmed)
+                {
+                    return left;
+                }
+
+                return right with
+                {
+                    Id = left.Id,
+                    AnchorDueDate = left.AnchorDueDate,
+                    AutopayAnchorDate = left.AutopayAnchorDate,
+                    ScheduleConfirmed = left.ScheduleConfirmed
+                };
             },
             expense => expense,
             expense => $"Expense {expense.Name}",
@@ -229,6 +265,11 @@ public static class HouseholdImportMerger
                     conflicts.Add($"Debt \"{left.Name}\" already has a different balance.");
                 }
 
+                if (left.Balance == right.Balance && left.MinimumPayment == right.MinimumPayment)
+                {
+                    return left;
+                }
+
                 return right with { Id = left.Id, OwnerMemberId = left.OwnerMemberId ?? right.OwnerMemberId };
             },
             debt => debt,
@@ -242,7 +283,7 @@ public static class HouseholdImportMerger
             incoming.Funds.Select(fund => fund with { OwnerMemberId = MapNullableMember(fund.OwnerMemberId) }).ToList(),
             fund => fund.Id,
             (left, right) => left.Purpose == right.Purpose && NamesMatch(left.Name, right.Name),
-            (left, right) => right with { Id = left.Id, CurrentBalance = left.CurrentBalance.IsZero ? right.CurrentBalance : left.CurrentBalance },
+            (left, right) => left,
             fund => fund,
             fund => $"Fund {fund.Name}",
             created,
@@ -254,7 +295,7 @@ public static class HouseholdImportMerger
             incoming.GroceryPlans,
             plan => plan.Id,
             (left, right) => left.Kind == right.Kind,
-            (_, right) => right,
+            (left, right) => left,
             plan => plan,
             plan => plan.Kind.ToDisplayName(),
             created,
@@ -266,7 +307,7 @@ public static class HouseholdImportMerger
             incoming.ForeignAccounts.Select(account => account with { OwnerMemberId = MapNullableMember(account.OwnerMemberId) }).ToList(),
             account => account.Id,
             (left, right) => NamesMatch(left.Nickname, right.Nickname) && NamesMatch(left.Institution, right.Institution),
-            (left, right) => right with { Id = left.Id },
+            (left, right) => left,
             account => account,
             account => $"Foreign account {account.Nickname}",
             created,
@@ -278,7 +319,7 @@ public static class HouseholdImportMerger
             incoming.Scenarios,
             scenario => scenario.Id,
             (left, right) => NamesMatch(left.Name, right.Name) && left.Kind == right.Kind,
-            (left, right) => right with { Id = left.Id },
+            (left, right) => left,
             scenario => scenario,
             scenario => $"Scenario {scenario.Name}",
             created,
@@ -394,8 +435,34 @@ public static class HouseholdImportMerger
             // Still apply the incoming authoritative rate; the caller records a conflict.
         }
 
-        return right with { Id = left.Id, MemberId = left.MemberId };
+        var merged = right with
+        {
+            Id = left.Id,
+            MemberId = left.MemberId,
+            StartsOn = right.StartsOn ?? left.StartsOn,
+            EndsOn = right.EndsOn ?? left.EndsOn,
+            Role = right.Role == IncomeRole.Wages && left.Role != IncomeRole.Wages
+                ? left.Role
+                : right.Role
+        };
+
+        return IncomeSemanticallyEqual(left, merged) ? left : merged;
     }
+
+    private static bool IncomeSemanticallyEqual(IncomeSource left, IncomeSource right) =>
+        left.GetType() == right.GetType()
+        && left.Name == right.Name
+        && left.MemberId == right.MemberId
+        && left.PayFrequency == right.PayFrequency
+        && left.AnchorPayDate == right.AnchorPayDate
+        && left.IsTaxable == right.IsTaxable
+        && left.IsActive == right.IsActive
+        && left.PayScheduleConfirmed == right.PayScheduleConfirmed
+        && left.StartsOn == right.StartsOn
+        && left.EndsOn == right.EndsOn
+        && left.Role == right.Role
+        && left.Notes == right.Notes
+        && left.GrossPerPeriod(IncomeEstimate.Normal) == right.GrossPerPeriod(IncomeEstimate.Normal);
 
     private static bool ExpenseMatches(ExpenseItem left, ExpenseItem right) =>
         NamesMatch(left.Name, right.Name)

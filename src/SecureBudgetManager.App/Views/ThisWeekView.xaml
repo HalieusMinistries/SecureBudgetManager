@@ -13,6 +13,67 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Money available now"/>
+                    <TextBlock Style="{StaticResource PageTitle}" Text="{Binding AvailableNowText}"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding SpendingSafetyNotice}"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding HarmedObligationText}"/>
+                </StackPanel>
+            </Border>
+
+            <UniformGrid Columns="2">
+                <Border Style="{StaticResource Card}" Margin="0,0,8,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Reserved money"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding ReservedText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="In the bank, excluded from safe-to-spend."/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Safe to spend before next income"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding SafeToSpendText}"/>
+                        <TextBlock Style="{StaticResource HintText}" Text="{Binding ValidThroughText}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="0,0,8,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Next confirmed income"/>
+                        <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding NextIncomeText}"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource Card}" Margin="8,0,0,16">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource CardTitle}" Text="Bills due before that income"/>
+                        <TextBlock Style="{StaticResource PageTitle}" Text="{Binding BillsBeforeIncomeText}"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Forecast monthly surplus"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding ForecastSurplusText}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="This is a future average. It is not money that can be spent today."/>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasBillsRequiringAttention, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Bills requiring attention before the next income"/>
+                    <ItemsControl ItemsSource="{Binding BillsRequiringAttention}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Essential coverage"/>
                     <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding EssentialsExplanation}"/>
                     <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">

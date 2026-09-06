@@ -220,6 +220,15 @@ public static class EarnerIncomeCalculator
                     payFrequency)))
                 .Round();
 
+            foreach (var pending in document.Benefits.Where(benefit =>
+                benefit.MemberId == member.Id && !benefit.IsConfirmed))
+            {
+                missing.Add(
+                    $"{pending.Name} of {pending.EmployeePremiumPerPeriod.ToDisplayString()} per " +
+                    $"{pending.PremiumFrequency.ToDisplayName()} is awaiting effective-date confirmation " +
+                    "and is excluded from this take-home figure.");
+            }
+
             payrollDeductions = Money.Max(
                 Money.Zero,
                 (result.PreTaxDeductions + result.RetirementContribution + result.PostTaxDeductions

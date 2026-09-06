@@ -33,7 +33,20 @@
             </StackPanel>
             <TextBlock Style="{StaticResource HintText}"
                        Margin="0,0,0,16"
-                       Text="{Binding Overview.PeriodLabel, StringFormat=Showing {0} figures. Average monthly is annual ÷ 12.}"/>
+                       Text="{Binding Overview.PeriodLabel, StringFormat=Showing {0} figures. Average monthly is annual ÷ 12 and is not money available today.}"/>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Money available now"/>
+                    <TextBlock Style="{StaticResource PageTitle}" Text="{Binding AvailableNowText}"/>
+                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" Text="{Binding SpendingSafetyNotice}"/>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                        <Run Text="Reserved "/><Run Text="{Binding ReservedText, Mode=OneWay}"/>
+                        <Run Text=" · safe to spend before next income "/><Run Text="{Binding SafeToSpendNowText, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding NextIncomeText}"/>
+                </StackPanel>
+            </Border>
 
             <UniformGrid Columns="2">
                 <Border Style="{StaticResource Card}" Margin="0,0,8,16">

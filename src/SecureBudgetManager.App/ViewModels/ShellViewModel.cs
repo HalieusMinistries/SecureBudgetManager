@@ -129,7 +129,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         ConcealWorkspace("inactivity", $"Figures were hidden after {DescribeTimeout(_inactivity.Timeout)} without activity. This is not database encryption.");
 
     private void OnSessionSecured(object? sender, string reason) =>
-        ConcealWorkspace(reason, $"Figures were hidden because {reason}. This is not database encryption. Restarting still opens the Dashboard.");
+        ConcealWorkspace(reason, $"Figures were hidden because {reason}. This is not database encryption. Restarting still opens This Week.");
 
     private void ConcealWorkspace(string auditReason, string userMessage)
     {
@@ -150,7 +150,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private void OnManualPrivacyRequested(object? sender, EventArgs e) =>
         ConcealWorkspace(
             "the Privacy button",
-            "Figures are hidden on this screen. This is not database encryption. Anyone with access to the Windows files can still read the local database. Restarting the programme opens the Dashboard normally.");
+            "Figures are hidden on this screen. This is not database encryption. Anyone with access to the Windows files can still read the local database. Restarting the programme opens This Week normally.");
 
     private void CaptureFullPage()
     {

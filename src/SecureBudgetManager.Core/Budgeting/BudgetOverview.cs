@@ -157,12 +157,14 @@ public static class BudgetOverviewCalculator
             attention.Add(item);
         }
 
-        var gross = DisplayIncome(
-            "Expected gross income",
-            takeHome.HasGrossIncome,
-            takeHome.AnnualGross,
-            period,
-            takeHome.GrossIsEstimated);
+        var gross = !takeHome.HasRegularWages && takeHome.AnnualReimbursements > Money.Zero
+            ? MetricDisplay.Unavailable("Regular taxable wages", "None — reimbursements recorded separately")
+            : DisplayIncome(
+                "Regular taxable wages",
+                takeHome.HasRegularWages,
+                takeHome.AnnualRegularGross,
+                period,
+                takeHome.GrossIsEstimated);
 
         var deductions = DisplayOptional(
             "Estimated payroll deductions",
@@ -213,7 +215,12 @@ public static class BudgetOverviewCalculator
             var expenseAmount = document.Expenses.Count == 0 ? Money.Zero : ToPeriod(expensesAnnual, period);
             var incomeAmount = takeHomeMetric.Amount ?? Money.Zero;
             var netAmount = (incomeAmount - expenseAmount).Round();
-            net = MetricDisplay.Value("Net cash flow", netAmount, takeHomeMetric.IsEstimated || expenses.IsEstimated);
+            net = MetricDisplay.Value(
+                period == DisplayPeriod.AverageMonthly
+                    ? "Forecast monthly surplus — not available today"
+                    : "Forecast surplus — not available today",
+                netAmount,
+                takeHomeMetric.IsEstimated || expenses.IsEstimated);
 
             if (netAmount.IsNegative)
             {
@@ -306,6 +313,7 @@ public static class BudgetOverviewCalculator
             IncomeSources = document.IncomeSources,
             NetPayPerPeriod = netBySource,
             Expenses = document.Expenses,
+            Payslips = document.Payslips,
             Assumption = IncomeEstimate.Conservative
         });
 
@@ -315,7 +323,7 @@ public static class BudgetOverviewCalculator
             document.Preferences.MinimumBalanceReserve);
 
         return (
-            MetricDisplay.Value("Safe to spend", safe.Amount, estimated: true),
+            MetricDisplay.Value("Projected remainder after dated bills", safe.Amount, estimated: true),
             MetricDisplay.Value("Lowest projected balance", projection.LowestBalance, estimated: true));
     }
 }
@@ -323,6 +331,12 @@ public static class BudgetOverviewCalculator
 public sealed record TakeHomeSnapshot
 {
     public required Money AnnualGross { get; init; }
+
+    public required Money AnnualRegularGross { get; init; }
+
+    public required Money AnnualReimbursements { get; init; }
+
+    public required Money AnnualOneTime { get; init; }
 
     public required Money AnnualTakeHome { get; init; }
 
@@ -333,6 +347,8 @@ public sealed record TakeHomeSnapshot
     public required Money AnnualEmployerMatch { get; init; }
 
     public required bool HasGrossIncome { get; init; }
+
+    public required bool HasRegularWages { get; init; }
 
     public required bool HasTaxableIncome { get; init; }
 
@@ -364,11 +380,15 @@ public static class TakeHomeCalculator
         var netBySource = new Dictionary<Guid, Money>();
 
         var annualGross = Money.Zero;
+        var annualRegularGross = Money.Zero;
+        var annualReimbursements = Money.Zero;
+        var annualOneTime = Money.Zero;
         var annualTakeHome = Money.Zero;
         var annualTax = Money.Zero;
         var annualDeductions = Money.Zero;
         var annualEmployerMatch = Money.Zero;
         var hasGross = false;
+        var hasRegular = false;
         var hasTaxable = false;
         var hasPayroll = false;
         var grossEstimated = false;
@@ -379,8 +399,32 @@ public static class TakeHomeCalculator
         foreach (var source in active)
         {
             hasGross = true;
-            var yearly = source.GrossPerYear(estimate).Round();
-            annualGross += yearly;
+            if (source.IsOneTimeIncome)
+            {
+                annualOneTime += source.GrossPerPeriod(estimate).Round();
+                attention.Add(new AttentionItem(
+                    $"{source.Name} is one-time expected income and is not averaged into regular monthly wages."));
+                continue;
+            }
+
+            if (source.IsReimbursementIncome)
+            {
+                annualReimbursements += source.GrossPerYear(estimate).Round();
+                attention.Add(new AttentionItem(
+                    $"{source.Name} is a reimbursement and is kept separate from regular taxable wages."));
+                continue;
+            }
+
+            if (source.IsRegularWage)
+            {
+                hasRegular = true;
+                annualRegularGross += source.GrossPerYear(estimate).Round();
+                annualGross += source.GrossPerYear(estimate).Round();
+            }
+            else
+            {
+                annualGross += source.GrossPerYear(estimate).Round();
+            }
 
             if (IsVariable(source))
             {
@@ -389,10 +433,10 @@ public static class TakeHomeCalculator
             }
         }
 
-        foreach (var group in active.GroupBy(source => source.MemberId))
+        foreach (var group in active.Where(source => !source.IsOneTimeIncome).GroupBy(source => source.MemberId))
         {
-            var taxable = group.Where(source => source.IsTaxable).ToList();
-            var reimbursements = group.Where(source => !source.IsTaxable).ToList();
+            var taxable = group.Where(source => source.IsTaxable && source.IsRegularWage).ToList();
+            var reimbursements = group.Where(source => source.IsReimbursementIncome).ToList();
 
             var reimbursementAnnual = Money.Sum(reimbursements.Select(source => source.GrossPerYear(estimate)));
             foreach (var source in reimbursements)
@@ -429,6 +473,14 @@ public static class TakeHomeCalculator
             hasPayroll = true;
             takeHomeEstimated = true;
 
+            foreach (var benefit in document.Benefits.Where(plan => plan.MemberId == group.Key && !plan.IsConfirmed))
+            {
+                attention.Add(new AttentionItem(
+                    $"{benefit.Name} of {benefit.EmployeePremiumPerPeriod.ToDisplayString()} per " +
+                    $"{benefit.PremiumFrequency.ToDisplayName()} is awaiting effective-date confirmation " +
+                    "and is excluded from this take-home forecast."));
+            }
+
             if (!TaxYearLibrary.TryGetYear(profile.TaxYear, out var table, out _) || table is null)
             {
                 continue;
@@ -464,11 +516,15 @@ public static class TakeHomeCalculator
         return new TakeHomeSnapshot
         {
             AnnualGross = annualGross.Round(),
+            AnnualRegularGross = annualRegularGross.Round(),
+            AnnualReimbursements = annualReimbursements.Round(),
+            AnnualOneTime = annualOneTime.Round(),
             AnnualTakeHome = annualTakeHome.Round(),
             AnnualTax = annualTax.Round(),
             AnnualEmployeeDeductions = annualDeductions.Round(),
             AnnualEmployerMatch = annualEmployerMatch.Round(),
             HasGrossIncome = hasGross,
+            HasRegularWages = hasRegular,
             HasTaxableIncome = hasTaxable,
             HasPayrollDetails = hasPayroll,
             GrossIsEstimated = grossEstimated,

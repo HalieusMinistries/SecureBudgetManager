@@ -13,7 +13,7 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Due-date-aware reservations"/>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="Bills and reservations"/>
                     <TextBlock Style="{StaticResource CardBody}" Text="{Binding Totals}"/>
                     <ItemsControl ItemsSource="{Binding Reservations}" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
@@ -22,17 +22,19 @@
                                     <StackPanel>
                                         <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
                                             <Run Text="{Binding Name, Mode=OneWay}"/>
-                                            <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Owner, Mode=OneWay}"/>
+                                            <Run Text=" · "/><Run Text="{Binding Classification, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Amount due "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
-                                            <Run Text=" · already reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
-                                            <Run Text=" · paydays remaining "/><Run Text="{Binding PaydaysRemaining, Mode=OneWay}"/>
-                                            <Run Text=" · required now "/><Run Text="{Binding RequiredNow, Mode=OneWay}"/>
+                                            <Run Text="Required "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
+                                            <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
+                                            <Run Text=" · paid "/><Run Text="{Binding AmountPaid, Mode=OneWay}"/>
+                                            <Run Text=" · reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
+                                            <Run Text=" · still required "/><Run Text="{Binding StillRequired, Mode=OneWay}"/>
+                                            <Run Text=" · from next paycheque "/><Run Text="{Binding RequiredNow, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
                                             <Run Text="{Binding Status, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Tier, Mode=OneWay}"/>
                                         </TextBlock>
                                         <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
                                     </StackPanel>

@@ -55,7 +55,7 @@ public sealed partial class MainViewModel : ObservableObject
         ForeignAccounts = foreignAccounts;
         Settings = settings;
         Help = help;
-        currentViewModel = dashboard;
+        currentViewModel = thisWeek;
         _session.Changed += OnSessionChanged;
     }
 
@@ -290,7 +290,7 @@ public sealed partial class MainViewModel : ObservableObject
     public void ResetNavigation()
     {
         _showBenefits = false;
-        CurrentViewModel = Dashboard;
+        CurrentViewModel = ThisWeek;
         StatusMessage = null;
     }
 

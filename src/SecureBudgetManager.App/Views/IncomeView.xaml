@@ -176,10 +176,16 @@
                               Visibility="{Binding ShowTaxable, Converter={StaticResource BooleanToVisibilityConverter}}"
                               AutomationProperties.Name="Taxable designation"/>
 
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Start date (known payday)"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Known payday"/>
                     <DatePicker Style="{StaticResource FormDatePicker}"
                                 SelectedDate="{Binding EditorStartDate}"
-                                AutomationProperties.Name="Income start date"/>
+                                AutomationProperties.Name="Known payday"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employment start date"/>
+                    <DatePicker Style="{StaticResource FormDatePicker}"
+                                SelectedDate="{Binding EditorEmploymentStartDate}"
+                                AutomationProperties.Name="Employment start date"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Employment start is not the payday. A first paycheque shorter than a normal week is not treated as a full week unless hours are recorded."/>
                     <CheckBox Style="{StaticResource ThemedCheckBox}"
                               Margin="0,12,0,0"
                               Content="Active"

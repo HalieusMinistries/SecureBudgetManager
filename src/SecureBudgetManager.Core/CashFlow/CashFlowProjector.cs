@@ -1,4 +1,5 @@
 using SecureBudgetManager.Core.Expenses;
+using SecureBudgetManager.Core.Guidance;
 using SecureBudgetManager.Core.Income;
 using SecureBudgetManager.Core.Models;
 using SecureBudgetManager.Core.Time;
@@ -105,6 +106,8 @@ public sealed record CashFlowInputs
 
     public IReadOnlyList<ExpenseItem> Expenses { get; init; } = [];
 
+    public IReadOnlyList<Payslip> Payslips { get; init; } = [];
+
     /// <summary>Movements the household has already confirmed, such as a cleared transaction.</summary>
     public IReadOnlyList<CashFlowEvent> ConfirmedEvents { get; init; } = [];
 
@@ -201,6 +204,32 @@ public static class CashFlowProjector
 
             foreach (var payDate in source.PayDates(inputs.From, inputs.To))
             {
+                var slip = inputs.Payslips.FirstOrDefault(item =>
+                    item.IncomeSourceId == source.Id && item.PayDate == payDate);
+                if (slip is not null)
+                {
+                    if (slip.NetPay <= Money.Zero)
+                    {
+                        continue;
+                    }
+
+                    yield return new CashFlowEvent
+                    {
+                        Date = payDate,
+                        Description = source.Name,
+                        Amount = slip.NetPay.Round(),
+                        Direction = CashFlowDirection.Deposit,
+                        SourceId = source.Id,
+                        IsConfirmed = true
+                    };
+                    continue;
+                }
+
+                if (!IncomeOccurrence.HasConfirmedPayableAmount(source, payDate, inputs.Payslips))
+                {
+                    continue;
+                }
+
                 yield return new CashFlowEvent
                 {
                     Date = payDate,

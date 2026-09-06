@@ -45,15 +45,36 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         : base(
             "This week",
             "Guidance",
-            "What is available, what has to be paid or set aside, and what may safely be spent " +
-            "between now and the next payday. Every figure is calculated on this device from your " +
-            "own records.")
+            "How much money is actually available now, what has been paid, what remains due, " +
+            "what is reserved, and what may safely be spent before the next income. " +
+            "A forecast monthly surplus is not money available today.")
     {
         _session = session;
         _clock = clock;
         _session.Changed += OnSessionChanged;
         Refresh();
     }
+
+    [ObservableProperty]
+    private string availableNowText = string.Empty;
+
+    [ObservableProperty]
+    private string reservedText = string.Empty;
+
+    [ObservableProperty]
+    private string nextIncomeText = string.Empty;
+
+    [ObservableProperty]
+    private string billsBeforeIncomeText = string.Empty;
+
+    [ObservableProperty]
+    private string forecastSurplusText = string.Empty;
+
+    [ObservableProperty]
+    private string spendingSafetyNotice = string.Empty;
+
+    [ObservableProperty]
+    private string harmedObligationText = string.Empty;
 
     [ObservableProperty]
     private string safetyLabel = string.Empty;
@@ -137,11 +158,15 @@ public sealed partial class ThisWeekViewModel : PageViewModel
 
     public IReadOnlyList<string> MissingInformation { get; private set; } = [];
 
+    public IReadOnlyList<string> BillsRequiringAttention { get; private set; } = [];
+
     public bool HasShortfall => Shortfalls.Count > 0 || !string.IsNullOrEmpty(ShortfallHeadline);
 
     public bool HasWarnings => Warnings.Count > 0;
 
     public bool HasMissingInformation => MissingInformation.Count > 0;
+
+    public bool HasBillsRequiringAttention => BillsRequiringAttention.Count > 0;
 
     [RelayCommand]
     private void ToggleExplanation() => ShowExplanation = !ShowExplanation;
@@ -183,10 +208,24 @@ public sealed partial class ThisWeekViewModel : PageViewModel
 
         var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         var allocation = PaychequeAllocator.Allocate(_session.Document, today);
+        var position = OperationalPositionCalculator.Build(_session.Document, today);
+
+        AvailableNowText = position.AvailableNow.ToDisplayString();
+        ReservedText = position.Reserved.ToDisplayString();
+        NextIncomeText = position.NextIncomeText;
+        BillsBeforeIncomeText = position.BillsDueBeforeNextIncome.ToDisplayString();
+        ForecastSurplusText =
+            $"Forecast monthly surplus {position.ForecastMonthlySurplus.ToDisplayString()} — future, not available today.";
+        SpendingSafetyNotice = position.SafetyNotice;
+        HarmedObligationText = position.HarmedObligation;
+        BillsRequiringAttention = position.BillsRequiringAttention;
+        SafeToSpendText = position.SafeToSpend.ToDisplayString();
+        EssentialRequiredText = position.EssentialRequired.ToDisplayString();
+        EssentialFundedText = position.EssentialFunded.ToDisplayString();
+        EssentialUnfundedText = position.EssentialShortfall.ToDisplayString();
 
         SafetyLabel = allocation.Safety.ToDisplayName();
         SafetyExplanation = allocation.Explanation.FinancialEffect;
-        SafeToSpendText = allocation.SafeToSpend.ToDisplayString();
         MustNotSpendText = allocation.MustNotSpend.ToDisplayString();
         ValidThroughText = $"Valid through {allocation.ValidThrough:yyyy-MM-dd}";
         IncomeBasisText = $"Income basis: {allocation.Basis.ToDisplayName()}";
@@ -200,17 +239,17 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         MoneyIn =
         [
             Line("Money available now", allocation.AvailableNow, "Balances as recorded on your accounts."),
-            Line("Income received today", allocation.IncomeReceived, "Deposits dated today."),
+            Line("Projected deposits dated today", allocation.IncomeReceived, "Not added to money available now."),
             Line(
-                "Income expected before the next payday",
+                "Projected income before the next payday",
                 allocation.IncomeExpectedBeforeNextPayday,
                 allocation.NextPayday is { } next
-                    ? $"Deposits between tomorrow and {next.AddDays(-1):yyyy-MM-dd}."
+                    ? $"Deposits between tomorrow and {next.AddDays(-1):yyyy-MM-dd}. Not available today."
                     : "No further payday was found in the projection."),
             Line(
-                "Income that may be relied on",
+                "Projected income that may be relied on later",
                 allocation.ReliableIncome,
-                "Essential obligations are protected with this figure."),
+                "A forecast only. It does not increase money available now."),
             Line(
                 "Additional income above the baseline",
                 allocation.AdditionalIncomeAboveBaseline,
@@ -234,7 +273,7 @@ public sealed partial class ThisWeekViewModel : PageViewModel
             Line("Lower-priority goals", allocation.LowerPriorityGoals, "Funded after required savings."),
             Line("Household safety margin", allocation.SafetyBuffer, "Kept back for what nobody saw coming."),
             Line("Unallocated surplus", allocation.UnallocatedSurplus, "Not yet assigned to anything."),
-            Line("Safe to spend", allocation.SafeToSpend, "Everything above the protected total."),
+            Line("Safe to spend", position.SafeToSpend, "From cash on hand, not from expected income."),
             Line("Must not be spent", allocation.MustNotSpend, "Held for named obligations and the buffer.")
         ];
 
@@ -289,9 +328,6 @@ public sealed partial class ThisWeekViewModel : PageViewModel
             : [];
 
         ShortfallHeadline = allocation.Shortfall?.Explanation ?? string.Empty;
-        EssentialRequiredText = allocation.Essentials.Required.ToDisplayString();
-        EssentialFundedText = allocation.Essentials.Funded.ToDisplayString();
-        EssentialUnfundedText = allocation.Essentials.Unfunded.ToDisplayString();
         EssentialsExplanation = allocation.Essentials.Explanation;
         Warnings = allocation.Warnings;
         MissingInformation = allocation.MissingInformation;
@@ -320,7 +356,15 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         Shortfalls = [];
         Warnings = [];
         MissingInformation = [];
+        BillsRequiringAttention = [];
 
+        AvailableNowText = string.Empty;
+        ReservedText = string.Empty;
+        NextIncomeText = string.Empty;
+        BillsBeforeIncomeText = string.Empty;
+        ForecastSurplusText = string.Empty;
+        SpendingSafetyNotice = string.Empty;
+        HarmedObligationText = string.Empty;
         SafetyLabel = string.Empty;
         SafetyExplanation = string.Empty;
         SafeToSpendText = string.Empty;
@@ -357,9 +401,11 @@ public sealed partial class ThisWeekViewModel : PageViewModel
         OnPropertyChanged(nameof(Shortfalls));
         OnPropertyChanged(nameof(Warnings));
         OnPropertyChanged(nameof(MissingInformation));
+        OnPropertyChanged(nameof(BillsRequiringAttention));
         OnPropertyChanged(nameof(HasShortfall));
         OnPropertyChanged(nameof(HasWarnings));
         OnPropertyChanged(nameof(HasMissingInformation));
+        OnPropertyChanged(nameof(HasBillsRequiringAttention));
     }
 
     private static GuidanceLineRow Line(string label, Money amount, string detail) =>

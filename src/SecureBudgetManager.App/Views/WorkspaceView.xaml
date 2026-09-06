@@ -65,9 +65,9 @@
                                      IsChecked="{Binding IsThisWeekSelected, Mode=OneWay}"/>
                         <RadioButton Style="{StaticResource NavRadioButton}"
                                      GroupName="MainNavigation"
-                                     Content="Allocations"
+                                     Content="Bills &amp; Reservations"
                                      Tag="&#xE9D2;"
-                                     AutomationProperties.Name="Paycheque allocations page"
+                                     AutomationProperties.Name="Bills and reservations page"
                                      Command="{Binding NavigateToAllocationsCommand}"
                                      IsChecked="{Binding IsAllocationsSelected, Mode=OneWay}"/>
                         <RadioButton Style="{StaticResource NavRadioButton}"

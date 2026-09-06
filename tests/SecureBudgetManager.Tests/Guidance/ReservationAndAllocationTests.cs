@@ -317,7 +317,10 @@ public sealed class ReservationAndAllocationTests
 
         var allocation = PaychequeAllocator.Allocate(tight, Today);
 
-        Assert.True(allocation.MustNotSpend > allocation.SafeToSpend || allocation.HasShortfall || allocation.SafeToSpend.IsNegative);
+        Assert.Equal(Money.Zero, allocation.SafeToSpend);
+        Assert.True(allocation.Essentials.Required >= new Money(2000m));
+        Assert.True(allocation.Essentials.Unfunded > Money.Zero);
+        Assert.True(allocation.HasShortfall);
         Assert.True(allocation.Ledger.ReconcilesExactly);
         Assert.DoesNotContain(allocation.Protections, item => item.Amount.IsNegative);
         if (allocation.HasShortfall)

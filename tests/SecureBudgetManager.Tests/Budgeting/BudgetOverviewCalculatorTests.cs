@@ -133,7 +133,8 @@ public sealed class BudgetOverviewCalculatorTests
 
         var overview = BudgetOverviewCalculator.Build(document, DisplayPeriod.Weekly, Today);
 
-        Assert.Equal(new Money(50m), overview.GrossIncome.Amount);
+        Assert.True(overview.GrossIncome.IsUnavailable);
+        Assert.Equal("None — reimbursements recorded separately", overview.GrossIncome.Text);
         Assert.Equal("No records yet", overview.EstimatedTaxes.Text);
         Assert.Equal(new Money(50m), overview.TakeHomePay.Amount);
     }
