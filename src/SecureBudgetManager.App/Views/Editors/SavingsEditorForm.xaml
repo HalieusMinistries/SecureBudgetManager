@@ -1,0 +1,34 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.SavingsEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <StackPanel Visibility="{Binding IsFundEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Sinking fund"/>
+            <TextBlock Style="{StaticResource HintText}" Text="A sinking fund is money set aside for a known future cost, such as car repairs or a deductible."/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund name"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Purpose"/>
+            <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding PurposeOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Purpose}" AutomationProperties.Name="Fund purpose"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Current balance ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CurrentBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund balance"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Target amount ($) — optional"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding TargetAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund target"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Target date — optional"/>
+            <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding TargetDate}" AutomationProperties.Name="Fund target date"/>
+        </StackPanel>
+        <StackPanel Visibility="{Binding IsGoalEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Savings goal"/>
+            <TextBlock Style="{StaticResource HintText}" Text="A goal is a target you are saving toward. Weekly contribution is what you intend to put aside, not money already moved."/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal name"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Target amount ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalTarget, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal target"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Already saved ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalCurrent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal current"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly contribution ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalContribution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal contribution"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Deadline (required)"/>
+            <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding GoalDate}" AutomationProperties.Name="Goal deadline"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

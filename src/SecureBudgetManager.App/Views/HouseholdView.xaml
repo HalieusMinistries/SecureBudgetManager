@@ -57,7 +57,17 @@
                           KeyboardNavigation.TabNavigation="Continue">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
+                        <Border Style="{StaticResource SelectableListRow}"
+                                Focusable="True"
+                                AutomationProperties.Name="{Binding Name}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" MinWidth="0"/>
@@ -97,57 +107,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <Border Style="{StaticResource Card}"
-                    Visibility="{Binding IsEditorOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="{Binding EditorTitle}"/>
-                    <TextBlock x:Name="MemberNameLabel" Style="{StaticResource FieldLabel}" Text="Member name"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding EditorName, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Member name"
-                             AutomationProperties.LabeledBy="{Binding ElementName=MemberNameLabel}"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,12,0,0"
-                              Content="This person is a dependant"
-                              IsChecked="{Binding EditorIsDependant}"
-                              AutomationProperties.Name="Member is a dependant"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,8,0,0"
-                              Content="Eligible for a personal discretionary allocation from their own income"
-                              IsChecked="{Binding EditorIsDiscretionaryEligible}"
-                              AutomationProperties.Name="Eligible for personal discretionary allocation"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,8,0,0"
-                              Content="Included when splitting shared costs"
-                              IsChecked="{Binding EditorParticipatesInSharedCosts}"
-                              AutomationProperties.Name="Member participates in shared costs"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,8,0,0"
-                              Content="Archived — keep history, exclude from new allocations"
-                              IsChecked="{Binding EditorIsArchived}"
-                              AutomationProperties.Name="Member is archived"/>
-                    <TextBlock x:Name="MemberNotesLabel" Style="{StaticResource FieldLabel}" Text="Notes"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding EditorNotes, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Member notes"
-                             AutomationProperties.LabeledBy="{Binding ElementName=MemberNotesLabel}"/>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="Discretionary eligibility is never inferred. Dependants stay in shared household needs such as food and housing, and do not receive a personal envelope unless you grant one here. Archiving keeps historical references valid."/>
-                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Style="{StaticResource PrimaryButton}"
-                                HorizontalAlignment="Left"
-                                Content="Save member"
-                                Command="{Binding SaveMemberCommand}"
-                                AutomationProperties.Name="Save member"/>
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Margin="8,0,0,0"
-                                Content="Cancel"
-                                Command="{Binding CancelEditorCommand}"
-                                AutomationProperties.Name="Cancel member editor"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
 
             <Border Style="{StaticResource ErrorCard}"
                     Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}">

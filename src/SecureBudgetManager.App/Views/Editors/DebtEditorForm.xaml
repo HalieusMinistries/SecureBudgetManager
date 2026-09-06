@@ -1,0 +1,22 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.DebtEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="What this debt is"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt name"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding KindOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Kind}" AutomationProperties.Name="Debt kind"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Balance now ($)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Balance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt balance"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="APR (%)"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Annual percentage rate. Enter 22.9 for a card that charges 22.9 percent a year."/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Apr, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt APR"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Minimum payment ($)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Minimum, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Minimum payment"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Promotional APR (%) — optional"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PromotionalApr, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Promotional APR"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Promotional rate expires"/>
+        <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding PromotionalEnds}" AutomationProperties.Name="Promotional rate expiry"/>
+    </StackPanel>
+</UserControl>

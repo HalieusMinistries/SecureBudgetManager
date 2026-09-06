@@ -1,0 +1,34 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.HouseholdEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Who this person is"/>
+        <TextBlock Style="{StaticResource HintText}" Text="A first name or nickname is enough. Do not enter official identification numbers."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}"
+                 Text="{Binding EditorName, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Member name"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="How this person is treated"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0"
+                  Content="This person is a dependant"
+                  IsChecked="{Binding EditorIsDependant}"
+                  AutomationProperties.Name="Member is a dependant"/>
+        <TextBlock Style="{StaticResource HintText}" Text="A dependant stays in shared household needs such as food and housing."/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0"
+                  Content="May receive a personal spending envelope from their own income"
+                  IsChecked="{Binding EditorIsDiscretionaryEligible}"
+                  AutomationProperties.Name="Eligible for personal discretionary allocation"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0"
+                  Content="Included when splitting shared costs"
+                  IsChecked="{Binding EditorParticipatesInSharedCosts}"
+                  AutomationProperties.Name="Member participates in shared costs"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0"
+                  Content="Archived — keep history, leave out of new allocations"
+                  IsChecked="{Binding EditorIsArchived}"
+                  AutomationProperties.Name="Member is archived"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Notes (optional)"/>
+        <TextBox Style="{StaticResource FormTextBox}"
+                 Text="{Binding EditorNotes, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Member notes"/>
+    </StackPanel>
+</UserControl>

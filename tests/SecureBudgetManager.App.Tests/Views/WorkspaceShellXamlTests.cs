@@ -12,6 +12,8 @@ public sealed class WorkspaceShellXamlTests
         Assert.Contains("No cloud, banks or telemetry", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("ENCRYPTED", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("computer\"/>", xaml, StringComparison.Ordinal);
+        Assert.Contains("EditorOverlay", xaml, StringComparison.Ordinal);
+        Assert.Contains("IsEditorVisible", xaml, StringComparison.Ordinal);
     }
 
     [Fact]

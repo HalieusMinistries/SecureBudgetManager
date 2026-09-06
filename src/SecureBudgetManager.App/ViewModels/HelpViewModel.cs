@@ -14,7 +14,7 @@ public sealed class HelpViewModel : PageViewModel
 
     public string ProductName => "Secure Budget Manager";
 
-    public string VersionText => "Version 1.0.1";
+    public string VersionText => "Version 1.0.2";
 
     public string PrivacyNote =>
         "Household data stays on this computer in a local SQLite database. Screenshots and CSV exports are not encrypted and contain household financial information.";

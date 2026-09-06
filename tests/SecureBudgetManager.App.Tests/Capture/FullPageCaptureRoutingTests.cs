@@ -5,13 +5,14 @@ namespace SecureBudgetManager.App.Tests.Capture;
 public sealed class FullPageCaptureRoutingTests
 {
     [Fact]
-    public void MainWindow_BindsCtrlSToCaptureFullPage()
+    public void MainWindow_BindsCtrlSToTheActiveEditorAndCaptureToCtrlShiftS()
     {
         var xaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "SecureBudgetManager.App", "MainWindow.xaml"));
 
-        Assert.Contains("Key=\"S\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Modifiers=\"Control\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding Workspace.SaveActiveCommand}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Modifiers=\"Control+Shift\"", xaml, StringComparison.Ordinal);
         Assert.Contains("Command=\"{Binding CaptureFullPageCommand}\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Command=\"{Binding Workspace.CancelActiveEditorCommand}\"", xaml, StringComparison.Ordinal);
         Assert.DoesNotContain("Command=\"{Binding SaveCommand}\"", xaml, StringComparison.Ordinal);
     }
 
@@ -21,7 +22,7 @@ public sealed class FullPageCaptureRoutingTests
         var xaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "SecureBudgetManager.App", "Views", "SettingsView.xaml"));
 
         Assert.Contains("Content=\"Capture full page\"", xaml, StringComparison.Ordinal);
-        Assert.Contains("Text=\"Ctrl+S\"", xaml, StringComparison.Ordinal);
+        Assert.Contains("Text=\"Ctrl+Shift+S\"", xaml, StringComparison.Ordinal);
         Assert.Contains("CaptureFullPageCommand", xaml, StringComparison.Ordinal);
     }
 

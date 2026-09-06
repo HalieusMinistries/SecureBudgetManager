@@ -1,0 +1,45 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.BenefitEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Benefit details"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Employee premiums reduce take-home pay. Employer contributions do not."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit name"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding BenefitKindOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding BenefitKind}"
+                  AutomationProperties.Name="Benefit kind"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Employee premium each period ($)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitPremium, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employee premium"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="How often that premium is taken"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding FrequencyOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding BenefitFrequency}"
+                  AutomationProperties.Name="Benefit premium frequency"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Tax treatment"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding TreatmentOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding BenefitTreatment}"
+                  AutomationProperties.Name="Benefit tax treatment"/>
+        <Expander Header="Optional coverage details" Margin="0,12,0,0" Foreground="{StaticResource Brush.Text}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Employer contribution each period ($)"/>
+                <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitEmployerContribution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employer benefit contribution"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Coverage amount (life, AD&amp;D, critical illness)"/>
+                <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitCoverageAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit coverage amount"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Effective date"/>
+                <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitEffectiveDate}" AutomationProperties.Name="Benefit effective date"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="Renewal or end date (optional)"/>
+                <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitRenewalDate}" AutomationProperties.Name="Benefit renewal date"/>
+            </StackPanel>
+        </Expander>
+    </StackPanel>
+</UserControl>

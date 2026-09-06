@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
 using SecureBudgetManager.Core.Income;
@@ -29,7 +31,7 @@ public sealed record IncomeListItem(
     string Status,
     bool IsMileage);
 
-public sealed partial class IncomeViewModel : PageViewModel
+public sealed partial class IncomeViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -211,6 +213,22 @@ public sealed partial class IncomeViewModel : PageViewModel
     private string? statusMessage;
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string EditorSaveLabel => "Save income";
+
+    public string? EditorEffectPreview => EquivalentSummary;
+
+    public bool HasEditorError => HasError;
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveEntryCommand;
+
+    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
+
+    public bool TryLeaveEditor() => ConfirmDiscardEditor();
+
+    public void DismissEditor() => CloseEditor();
 
     public bool HasEditorChanges => IsEditorOpen && Fingerprint() != _originalFingerprint;
 

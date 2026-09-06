@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Benefits;
 using SecureBudgetManager.Core.Budgeting;
@@ -29,7 +31,7 @@ public sealed record BenefitListItem(
     string Dates,
     string Status);
 
-public sealed partial class PayrollViewModel : PageViewModel
+public sealed partial class PayrollViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -212,6 +214,30 @@ public sealed partial class PayrollViewModel : PageViewModel
     private string? statusMessage;
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    bool IEditablePage.IsEditorOpen => IsBenefitEditorOpen;
+
+    public string EditorTitle => BenefitEditorTitle;
+
+    public string EditorSaveLabel => "Save benefit";
+
+    public string? EditorEffectPreview =>
+        "Employee premiums reduce take-home pay. Employer contributions do not.";
+
+    public bool HasEditorChanges =>
+        IsBenefitEditorOpen && BenefitFingerprint() != _originalBenefitFingerprint;
+
+    public bool HasEditorError => HasError;
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveBenefitCommand;
+
+    public ICommand CancelEditorCommand => CancelBenefitCommand;
+
+    public bool TryLeaveEditor() => ConfirmDiscardBenefit();
+
+    public void DismissEditor() => CloseBenefitEditor();
 
     partial void OnSelectedMemberIdChanged(Guid value)
     {

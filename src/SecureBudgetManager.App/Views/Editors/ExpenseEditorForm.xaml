@@ -1,0 +1,60 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.ExpenseEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="What this cost is"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Expense name"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Who is responsible"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding OwnerOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding EditorOwnerId}"
+                  AutomationProperties.Name="Expense owner"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Shared household stays unassigned until someone agrees to pay."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding CategoryOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding EditorCategory}"
+                  AutomationProperties.Name="Expense category"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Essential or optional"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding NecessityOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding EditorNecessity}"
+                  AutomationProperties.Name="Expense necessity"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Amount and timing"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Amount ($)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Expense amount"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="How often"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding FrequencyOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding EditorFrequency}"
+                  AutomationProperties.Name="Expense frequency"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Due date (anchors the schedule)"/>
+        <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding EditorDueDate}" AutomationProperties.Name="Expense due date"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="End date (optional)"/>
+        <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding EditorEndDate}" AutomationProperties.Name="Expense end date"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Fixed or variable"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding VariabilityOptions}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding EditorVariability}"
+                  AutomationProperties.Name="Expense variability"/>
+        <TextBlock Style="{StaticResource HintText}"
+                   Text="For a variable cost, enter the amount you expect to spend each time."
+                   Visibility="{Binding IsVariable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0"
+                  Content="This expense is currently active"
+                  IsChecked="{Binding EditorIsActive}"
+                  AutomationProperties.Name="Expense is active"/>
+        <TextBlock Style="{StaticResource HintText}" Text="{Binding EquivalentSummary}"/>
+    </StackPanel>
+</UserControl>

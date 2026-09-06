@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
 using SecureBudgetManager.Core.Expenses;
@@ -22,7 +24,7 @@ public sealed record ExpenseListItem(
     string Annual,
     string Status);
 
-public sealed partial class ExpensesViewModel : PageViewModel
+public sealed partial class ExpensesViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -137,6 +139,22 @@ public sealed partial class ExpensesViewModel : PageViewModel
     private string? statusMessage;
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string EditorSaveLabel => "Save expense";
+
+    public string? EditorEffectPreview => EquivalentSummary;
+
+    public bool HasEditorError => HasError;
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveEntryCommand;
+
+    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
+
+    public bool TryLeaveEditor() => ConfirmDiscardEditor();
+
+    public void DismissEditor() => CloseEditor();
 
     public bool HasEditorChanges => IsEditorOpen && Fingerprint() != _originalFingerprint;
 

@@ -9,29 +9,36 @@
             <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
             <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
 
-            <Border Style="{StaticResource Card}">
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="0"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Sinking funds" VerticalAlignment="Center" Margin="0"/>
+                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Add fund" Command="{Binding BeginAddFundCommand}" AutomationProperties.Name="Add sinking fund"/>
+            </Grid>
+
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasFunds, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Sinking fund"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund name"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Purpose"/>
-                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding PurposeOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Purpose}" AutomationProperties.Name="Fund purpose"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Current balance"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CurrentBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund balance"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Target amount"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding TargetAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fund target"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Target date"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding TargetDate}" AutomationProperties.Name="Fund target date"/>
-                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save fund" Command="{Binding AddFundCommand}" AutomationProperties.Name="Save fund"/>
-                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
-                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="No sinking funds yet"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="Add a fund when you need to set money aside for a known future cost, such as repairs or a deductible."/>
                 </StackPanel>
             </Border>
 
             <ItemsControl ItemsSource="{Binding Funds}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
+                        <Border Style="{StaticResource SelectableListRow}" Focusable="True" AutomationProperties.Name="{Binding Name}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditFundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditFundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -43,43 +50,59 @@
                                     <TextBlock Style="{StaticResource HintText}" Text="{Binding Progress}"/>
                                     <TextBlock Style="{StaticResource HintText}" Text="{Binding WeeklyNeed}"/>
                                 </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource DangerButton}" Padding="10,6" FontSize="12" Content="Remove"
-                                        Command="{Binding DataContext.RemoveFundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding}"
-                                        AutomationProperties.Name="Remove fund"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource CompactButton}" Content="Edit"
+                                            Command="{Binding DataContext.BeginEditFundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Edit fund"/>
+                                    <Button Style="{StaticResource DangerButton}" Padding="10,6" FontSize="12" Content="Remove"
+                                            Command="{Binding DataContext.RemoveFundCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Remove fund"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Financial goal"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal name"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Target"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalTarget, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal target"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Already saved"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalCurrent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal current"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly contribution"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding GoalContribution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Goal contribution"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Deadline"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding GoalDate}" AutomationProperties.Name="Goal deadline"/>
-                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save goal" Command="{Binding AddGoalCommand}" AutomationProperties.Name="Save goal"/>
-                </StackPanel>
-            </Border>
+            <Grid Margin="16,8,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="0"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Savings goals" VerticalAlignment="Center" Margin="0"/>
+                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Add goal" Command="{Binding BeginAddGoalCommand}" AutomationProperties.Name="Add savings goal"/>
+            </Grid>
 
             <ItemsControl ItemsSource="{Binding Goals}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
-                            <StackPanel>
-                                <TextBlock Text="{Binding Name}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold"/>
-                                <TextBlock Style="{StaticResource HintText}" Text="{Binding Progress}"/>
-                                <TextBlock Style="{StaticResource HintText}" Text="{Binding Deadline}"/>
-                                <TextBlock Style="{StaticResource HintText}" Text="{Binding Note}"/>
-                            </StackPanel>
+                        <Border Style="{StaticResource SelectableListRow}" Focusable="True" AutomationProperties.Name="{Binding Name}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold"/>
+                                    <TextBlock Style="{StaticResource HintText}" Text="{Binding Progress}"/>
+                                    <TextBlock Style="{StaticResource HintText}" Text="{Binding Deadline}"/>
+                                    <TextBlock Style="{StaticResource HintText}" Text="{Binding Note}"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Style="{StaticResource CompactButton}" Content="Edit"
+                                        Command="{Binding DataContext.BeginEditGoalCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}"
+                                        AutomationProperties.Name="Edit goal"/>
+                            </Grid>
                         </Border>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
@@ -89,6 +112,8 @@
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Trade-offs"/>
                     <TextBlock Style="{StaticResource CardBody}" Text="{Binding ConflictText}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
                 </StackPanel>
             </Border>
         </StackPanel>

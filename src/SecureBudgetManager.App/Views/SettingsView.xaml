@@ -79,7 +79,7 @@
                                 Command="{Binding DataContext.CaptureFullPageCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                 AutomationProperties.Name="Capture full page"/>
                         <TextBlock Style="{StaticResource HintText}"
-                                   Text="Ctrl+S"
+                                   Text="Ctrl+Shift+S"
                                    VerticalAlignment="Center"
                                    Margin="4,0,0,0"/>
                     </StackPanel>

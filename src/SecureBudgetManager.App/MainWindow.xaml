@@ -21,7 +21,12 @@
     <Window.InputBindings>
         <KeyBinding Key="S"
                     Modifiers="Control"
+                    Command="{Binding Workspace.SaveActiveCommand}"/>
+        <KeyBinding Key="S"
+                    Modifiers="Control+Shift"
                     Command="{Binding CaptureFullPageCommand}"/>
+        <KeyBinding Key="Escape"
+                    Command="{Binding Workspace.CancelActiveEditorCommand}"/>
     </Window.InputBindings>
 
     <ContentControl Content="{Binding CurrentScreen}"

@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
 using SecureBudgetManager.Core.Goals;
@@ -14,7 +16,7 @@ public sealed record FundListItem(Guid Id, string Name, string Purpose, string P
 
 public sealed record GoalListItem(Guid Id, string Name, string Progress, string Deadline, string Note);
 
-public sealed partial class SavingsViewModel : PageViewModel
+public sealed partial class SavingsViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -50,6 +52,8 @@ public sealed partial class SavingsViewModel : PageViewModel
 
     public IReadOnlyList<GoalListItem> Goals { get; private set; } = [];
 
+    public bool HasFunds => Funds.Count > 0;
+
     [ObservableProperty] private string name = string.Empty;
     [ObservableProperty] private FundPurpose purpose = FundPurpose.EmergencyFund;
     [ObservableProperty] private string currentBalance = "0";
@@ -63,6 +67,169 @@ public sealed partial class SavingsViewModel : PageViewModel
     [ObservableProperty] private DateTime? goalDate;
     [ObservableProperty] private string goalContribution = "0";
     [ObservableProperty] private string conflictText = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsFundEditor))]
+    private bool isEditorOpen;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsFundEditor))]
+    private bool isGoalEditor;
+    private Guid? _editingFundId;
+    private Guid? _editingGoalId;
+    private string _originalFingerprint = string.Empty;
+
+    public bool IsFundEditor => IsEditorOpen && !IsGoalEditor;
+
+    public string EditorTitle => IsGoalEditor
+        ? _editingGoalId is null ? "Add savings goal" : "Edit savings goal"
+        : _editingFundId is null ? "Add sinking fund" : "Edit sinking fund";
+
+    public string EditorSaveLabel => IsGoalEditor ? "Save goal" : "Save fund";
+
+    public string? EditorEffectPreview =>
+        string.IsNullOrWhiteSpace(ConflictText) ? null : ConflictText;
+
+    public bool HasEditorChanges => IsEditorOpen && Fingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => IsGoalEditor ? AddGoalCommand : AddFundCommand;
+
+    public ICommand CancelEditorCommand => CancelEditorAliasCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this fund or goal?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        IsGoalEditor = false;
+        _editingFundId = null;
+        _editingGoalId = null;
+        ErrorMessage = null;
+    }
+
+    private string Fingerprint() =>
+        IsGoalEditor
+            ? $"{GoalName}|{GoalTarget}|{GoalCurrent}|{GoalContribution}|{GoalDate}"
+            : $"{Name}|{Purpose}|{CurrentBalance}|{TargetAmount}|{TargetDate}";
+
+    [RelayCommand]
+    private void CancelEditorAlias() => DismissEditor();
+
+    [RelayCommand]
+    private void BeginAddFund()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingFundId = null;
+        IsGoalEditor = false;
+        Name = string.Empty;
+        CurrentBalance = "0";
+        TargetAmount = string.Empty;
+        TargetDate = null;
+        Purpose = FundPurpose.EmergencyFund;
+        _originalFingerprint = Fingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginAddGoal()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingGoalId = null;
+        IsGoalEditor = true;
+        GoalName = string.Empty;
+        GoalTarget = string.Empty;
+        GoalCurrent = "0";
+        GoalContribution = "0";
+        GoalDate = null;
+        _originalFingerprint = Fingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEditFund(FundListItem? item)
+    {
+        if (item is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var fund = _session.Document.Funds.FirstOrDefault(entry => entry.Id == item.Id);
+        if (fund is null)
+        {
+            return;
+        }
+
+        _editingFundId = fund.Id;
+        IsGoalEditor = false;
+        Name = fund.Name;
+        Purpose = fund.Purpose;
+        CurrentBalance = AmountParsing.Format(fund.CurrentBalance);
+        TargetAmount = fund.TargetAmount is { } target ? AmountParsing.Format(target) : string.Empty;
+        TargetDate = fund.TargetDate?.ToDateTime(TimeOnly.MinValue);
+        _originalFingerprint = Fingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEditGoal(GoalListItem? item)
+    {
+        if (item is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var goal = _session.Document.Goals.FirstOrDefault(entry => entry.Id == item.Id);
+        if (goal is null)
+        {
+            return;
+        }
+
+        _editingGoalId = goal.Id;
+        IsGoalEditor = true;
+        GoalName = goal.Name;
+        GoalTarget = AmountParsing.Format(goal.TargetAmount);
+        GoalCurrent = AmountParsing.Format(goal.CurrentAmount);
+        GoalContribution = AmountParsing.Format(goal.PlannedContribution);
+        GoalDate = goal.TargetDate.ToDateTime(TimeOnly.MinValue);
+        _originalFingerprint = Fingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
 
     [RelayCommand]
     private async Task AddFundAsync(CancellationToken cancellationToken)
@@ -87,15 +254,24 @@ public sealed partial class SavingsViewModel : PageViewModel
 
         var document = _session.Document;
         var funds = document.Funds.ToList();
-        funds.Add(new SavingsFund
+        var fund = new SavingsFund
         {
-            Id = Guid.NewGuid(),
+            Id = _editingFundId ?? Guid.NewGuid(),
             Name = Name.Trim(),
             Purpose = Purpose,
             CurrentBalance = balance,
             TargetAmount = target,
             TargetDate = TargetDate is { } date ? DateOnly.FromDateTime(date) : null
-        });
+        };
+        var index = funds.FindIndex(entry => entry.Id == fund.Id);
+        if (index >= 0)
+        {
+            funds[index] = fund;
+        }
+        else
+        {
+            funds.Add(fund);
+        }
 
         if (!_session.TryReplace(document with { Funds = funds }, out var error))
         {
@@ -114,6 +290,7 @@ public sealed partial class SavingsViewModel : PageViewModel
         TargetAmount = string.Empty;
         ErrorMessage = null;
         StatusMessage = "Fund saved.";
+        DismissEditor();
     }
 
     [RelayCommand]
@@ -155,16 +332,25 @@ public sealed partial class SavingsViewModel : PageViewModel
         }
 
         var goals = _session.Document.Goals.ToList();
-        goals.Add(new Goal
+        var goal = new Goal
         {
-            Id = Guid.NewGuid(),
+            Id = _editingGoalId ?? Guid.NewGuid(),
             Name = GoalName.Trim(),
             TargetAmount = target,
             CurrentAmount = current,
             TargetDate = DateOnly.FromDateTime(GoalDate.Value),
             PlannedContribution = contribution,
             ContributionFrequency = Frequency.Weekly
-        });
+        };
+        var index = goals.FindIndex(entry => entry.Id == goal.Id);
+        if (index >= 0)
+        {
+            goals[index] = goal;
+        }
+        else
+        {
+            goals.Add(goal);
+        }
 
         if (!_session.TryReplace(_session.Document with { Goals = goals }, out var error))
         {
@@ -184,6 +370,7 @@ public sealed partial class SavingsViewModel : PageViewModel
         GoalContribution = "0";
         ErrorMessage = null;
         StatusMessage = "Goal saved.";
+        DismissEditor();
     }
 
     private void OnSessionChanged(object? sender, EventArgs e) => Refresh();
@@ -205,6 +392,7 @@ public sealed partial class SavingsViewModel : PageViewModel
             StatusMessage = null;
             ErrorMessage = null;
             OnPropertyChanged(nameof(Funds));
+            OnPropertyChanged(nameof(HasFunds));
             OnPropertyChanged(nameof(Goals));
             return;
         }
@@ -237,6 +425,7 @@ public sealed partial class SavingsViewModel : PageViewModel
             : conflict.Explanation + " " + string.Join(" ", conflict.SuggestedTradeOffs);
 
         OnPropertyChanged(nameof(Funds));
+        OnPropertyChanged(nameof(HasFunds));
         OnPropertyChanged(nameof(Goals));
     }
 }

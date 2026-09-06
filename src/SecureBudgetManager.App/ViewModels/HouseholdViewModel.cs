@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Household;
 using SecureBudgetManager.Core.Storage;
@@ -18,7 +20,7 @@ public sealed record MemberListItem(
         : $"{Name} · {Role} · {Designation}";
 }
 
-public sealed partial class HouseholdViewModel : PageViewModel
+public sealed partial class HouseholdViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -81,6 +83,25 @@ public sealed partial class HouseholdViewModel : PageViewModel
     private string? statusMessage;
 
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string EditorSaveLabel => "Save member";
+
+    public string? EditorEffectPreview =>
+        EditorIsDependant
+            ? "This person will stay in shared household needs such as food and housing."
+            : "This person can have their own income and assigned bills.";
+
+    public bool HasEditorError => HasError;
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveMemberCommand;
+
+    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
+
+    public bool TryLeaveEditor() => ConfirmDiscardEditor();
+
+    public void DismissEditor() => CloseEditor();
 
     public bool HasEditorChanges => IsEditorOpen && (
         !string.Equals(EditorName, _originalEditorName, StringComparison.Ordinal)

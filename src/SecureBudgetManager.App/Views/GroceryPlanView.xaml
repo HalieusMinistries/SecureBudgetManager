@@ -34,90 +34,74 @@
 
             <Border Style="{StaticResource Card}">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Categories"/>
-                    <ItemsControl ItemsSource="{Binding Categories}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="0"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Categories" VerticalAlignment="Center" Margin="0"/>
+                        <Button Grid.Column="1"
+                                Style="{StaticResource SecondaryButton}"
+                                Content="Add category"
+                                Command="{Binding AddCategoryCommand}"
+                                AutomationProperties.Name="Add the new grocery category"/>
+                    </Grid>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Double-click a category or choose Edit to change its weekly limit. Add a custom name below if you need a new group."/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name for a new custom category"/>
+                    <TextBox Style="{StaticResource FormTextBox}"
+                             Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Name of the new grocery category"/>
+                    <ItemsControl ItemsSource="{Binding Categories}" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource ListRow}">
-                                    <StackPanel>
-                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
-                                            <Run Text="{Binding Name, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Essential, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Limit "/><Run Text="{Binding WeeklyLimit, Mode=OneWay}"/>
-                                            <Run Text=" · spent "/><Run Text="{Binding Spent, Mode=OneWay}"/>
-                                            <Run Text=" · remaining "/><Run Text="{Binding Remaining, Mode=OneWay}"/>
-                                            <Run Text=" · carried in "/><Run Text="{Binding CarriedForward, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Suggested "/><Run Text="{Binding Suggested, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Ranges, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="{Binding Rollover, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Source, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding EffectiveDate, Mode=OneWay}"/>
-                                            <Run Text=" · confidence "/><Run Text="{Binding Confidence, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding ReviewState, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </StackPanel>
+                                <Border Style="{StaticResource SelectableListRow}"
+                                        Focusable="True"
+                                        AutomationProperties.Name="{Binding Name}">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftDoubleClick"
+                                                      Command="{Binding DataContext.OpenCategoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                        <KeyBinding Key="Return"
+                                                    Command="{Binding DataContext.OpenCategoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                                <Run Text="{Binding Name, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Essential, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="Limit "/><Run Text="{Binding WeeklyLimit, Mode=OneWay}"/>
+                                                <Run Text=" · spent "/><Run Text="{Binding Spent, Mode=OneWay}"/>
+                                                <Run Text=" · remaining "/><Run Text="{Binding Remaining, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Ranges}"/>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Style="{StaticResource CompactButton}"
+                                                    Content="Edit"
+                                                    Command="{Binding DataContext.OpenCategoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="Edit grocery category"/>
+                                            <Button Style="{StaticResource DangerButton}"
+                                                    Padding="10,6"
+                                                    FontSize="12"
+                                                    Content="Remove"
+                                                    Command="{Binding DataContext.RemoveCategoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="Remove this category"/>
+                                        </StackPanel>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Set a category"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding Categories}"
-                              DisplayMemberPath="Name"
-                              SelectedItem="{Binding SelectedCategory}"
-                              AutomationProperties.Name="Grocery category to change"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly limit"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding CategoryLimit, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Weekly limit for this category"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Unspent money at the end of the week"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding RolloverRules}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding CategoryRollover}"
-                              AutomationProperties.Name="Rollover rule"/>
-                    <CheckBox Margin="0,10,0,0"
-                              Content="Essential food, protected before discretionary spending"
-                              IsChecked="{Binding CategoryIsEssential}"
-                              AutomationProperties.Name="Essential food"/>
-                    <CheckBox Margin="0,6,0,0"
-                              Content="Normally supplied by food assistance rather than cash"
-                              IsChecked="{Binding CategorySuppliedByAssistance}"
-                              AutomationProperties.Name="Supplied by food assistance"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Style="{StaticResource PrimaryButton}"
-                                Content="Save category"
-                                Command="{Binding SaveCategoryCommand}"
-                                AutomationProperties.Name="Save this category"/>
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Margin="8,0,0,0"
-                                Content="Remove category"
-                                Command="{Binding RemoveCategoryCommand}"
-                                AutomationProperties.Name="Remove this category"/>
-                    </StackPanel>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Add a custom category"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding NewCategoryName, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Name of the new grocery category"/>
-                    <Button Style="{StaticResource SecondaryButton}"
-                            Margin="0,10,0,0"
-                            HorizontalAlignment="Left"
-                            Content="Add category"
-                            Command="{Binding AddCategoryCommand}"
-                            AutomationProperties.Name="Add the new grocery category"/>
                 </StackPanel>
             </Border>
 

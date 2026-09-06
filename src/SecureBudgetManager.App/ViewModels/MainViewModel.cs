@@ -1,6 +1,9 @@
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
+using SecureBudgetManager.Core.Layout;
 
 namespace SecureBudgetManager.App.ViewModels;
 
@@ -56,8 +59,15 @@ public sealed partial class MainViewModel : ObservableObject
         Settings = settings;
         Help = help;
         currentViewModel = thisWeek;
+        thisWeek.PropertyChanged += OnPagePropertyChanged;
         _session.Changed += OnSessionChanged;
     }
+
+    public double OverlayWidth => EditorOverlayCalculator.PreferredWidth;
+
+    public double OverlayHeight => EditorOverlayCalculator.PreferredHeight;
+
+    public bool IsEditorVisible => CurrentViewModel is IEditablePage { IsEditorOpen: true };
 
     /// <summary>Raised when the user presses Lock. The shell owns the actual locking.</summary>
     public event EventHandler? LockRequested;
@@ -124,6 +134,7 @@ public sealed partial class MainViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsSettingsSelected))]
     [NotifyPropertyChangedFor(nameof(IsHelpSelected))]
     [NotifyPropertyChangedFor(nameof(IsBenefitsSelected))]
+    [NotifyPropertyChangedFor(nameof(IsEditorVisible))]
     private PageViewModel currentViewModel;
 
     public bool IsDashboardSelected => CurrentViewModel is DashboardViewModel;
@@ -181,76 +192,76 @@ public sealed partial class MainViewModel : ObservableObject
     public bool CanSave => _session.IsOpen && _session.HasUnsavedChanges && !_session.IsSaving;
 
     [RelayCommand]
-    private void NavigateToDashboard() => CurrentViewModel = Dashboard;
+    private void NavigateToDashboard() => Navigate(Dashboard);
 
     [RelayCommand]
-    private void NavigateToThisWeek() => CurrentViewModel = ThisWeek;
+    private void NavigateToThisWeek() => Navigate(ThisWeek);
 
     [RelayCommand]
-    private void NavigateToHousehold() => CurrentViewModel = Household;
+    private void NavigateToHousehold() => Navigate(Household);
 
     [RelayCommand]
-    private void NavigateToIncome() => CurrentViewModel = Income;
+    private void NavigateToIncome() => Navigate(Income);
 
     [RelayCommand]
-    private void NavigateToExpenses() => CurrentViewModel = Expenses;
+    private void NavigateToExpenses() => Navigate(Expenses);
 
     [RelayCommand]
     private void NavigateToPayroll()
     {
         _showBenefits = false;
-        CurrentViewModel = Payroll;
+        Navigate(Payroll);
     }
 
     [RelayCommand]
     private void NavigateToBenefits()
     {
         _showBenefits = true;
-        CurrentViewModel = Payroll;
+        Navigate(Payroll);
         StatusMessage = "Benefits are in the dedicated Benefits section on the Payroll page.";
     }
 
     [RelayCommand]
-    private void NavigateToCashFlow() => CurrentViewModel = CashFlow;
+    private void NavigateToCashFlow() => Navigate(CashFlow);
 
     [RelayCommand]
-    private void NavigateToPlanning() => CurrentViewModel = Planning;
+    private void NavigateToPlanning() => Navigate(Planning);
 
     [RelayCommand]
-    private void NavigateToDebt() => CurrentViewModel = Debt;
+    private void NavigateToDebt() => Navigate(Debt);
 
     [RelayCommand]
-    private void NavigateToSavings() => CurrentViewModel = Savings;
+    private void NavigateToSavings() => Navigate(Savings);
 
     [RelayCommand]
-    private void NavigateToActuals() => CurrentViewModel = Actuals;
+    private void NavigateToActuals() => Navigate(Actuals);
 
     [RelayCommand]
-    private void NavigateToAllocations() => CurrentViewModel = Allocations;
+    private void NavigateToAllocations() => Navigate(Allocations);
 
     [RelayCommand]
-    private void NavigateToGrocery() => CurrentViewModel = Grocery;
+    private void NavigateToGrocery() => Navigate(Grocery);
 
     [RelayCommand]
-    private void NavigateToLocalGuidance() => CurrentViewModel = LocalGuidance;
+    private void NavigateToLocalGuidance() => Navigate(LocalGuidance);
 
     [RelayCommand]
-    private void NavigateToAllocationRules() => CurrentViewModel = AllocationRules;
+    private void NavigateToAllocationRules() => Navigate(AllocationRules);
 
     [RelayCommand]
-    private void NavigateToProducts() => CurrentViewModel = Products;
+    private void NavigateToProducts() => Navigate(Products);
 
     [RelayCommand]
-    private void NavigateToInternationalTransfers() => CurrentViewModel = InternationalTransfers;
+    private void NavigateToInternationalTransfers() => Navigate(InternationalTransfers);
 
     [RelayCommand]
-    private void NavigateToForeignAccounts() => CurrentViewModel = ForeignAccounts;
+    private void NavigateToForeignAccounts() => Navigate(ForeignAccounts);
 
     [RelayCommand]
-    private void NavigateToSettings() => CurrentViewModel = Settings;
+    private void NavigateToSettings() => Navigate(Settings);
 
     [RelayCommand]
-    private void NavigateToHelp() => CurrentViewModel = Help;
+    private void NavigateToHelp() => Navigate(Help);
 
     [RelayCommand]
     private void Undo()
@@ -279,6 +290,74 @@ public sealed partial class MainViewModel : ObservableObject
             : _session.LastError ?? "The household data could not be saved.";
     }
 
+    [RelayCommand]
+    private async Task SaveActiveAsync(CancellationToken cancellationToken)
+    {
+        if (CurrentViewModel is IEditablePage { IsEditorOpen: true } editor)
+        {
+            if (editor.SaveEditorCommand.CanExecute(null))
+            {
+                editor.SaveEditorCommand.Execute(null);
+            }
+
+            return;
+        }
+
+        if (CanSave)
+        {
+            await SaveAsync(cancellationToken);
+        }
+    }
+
+    [RelayCommand]
+    private void CancelActiveEditor()
+    {
+        if (CurrentViewModel is IEditablePage { IsEditorOpen: true } editor)
+        {
+            editor.CancelEditorCommand.Execute(null);
+        }
+    }
+
+    private void Navigate(PageViewModel next)
+    {
+        if (ReferenceEquals(CurrentViewModel, next))
+        {
+            return;
+        }
+
+        if (CurrentViewModel is IEditablePage editor && editor.IsEditorOpen && !editor.TryLeaveEditor())
+        {
+            return;
+        }
+
+        CurrentViewModel = next;
+    }
+
+    partial void OnCurrentViewModelChanged(PageViewModel? oldValue, PageViewModel newValue)
+    {
+        if (oldValue is not null)
+        {
+            oldValue.PropertyChanged -= OnPagePropertyChanged;
+        }
+
+        newValue.PropertyChanged += OnPagePropertyChanged;
+        OnPropertyChanged(nameof(IsEditorVisible));
+    }
+
+    private void OnPagePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(IEditablePage.IsEditorOpen)
+            or "IsEditorOpen"
+            or "ShowBenefitEditor"
+            or "IsBenefitEditorOpen"
+            or nameof(IEditablePage.EditorTitle)
+            or nameof(IEditablePage.EditorEffectPreview)
+            or nameof(IEditablePage.HasEditorError))
+        {
+            OnPropertyChanged(nameof(IsEditorVisible));
+        }
+    }
+
     private void OnSessionChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(HasUnsavedChanges));
@@ -289,6 +368,11 @@ public sealed partial class MainViewModel : ObservableObject
 
     public void ResetNavigation()
     {
+        if (CurrentViewModel is IEditablePage editor)
+        {
+            editor.DismissEditor();
+        }
+
         _showBenefits = false;
         CurrentViewModel = ThisWeek;
         StatusMessage = null;

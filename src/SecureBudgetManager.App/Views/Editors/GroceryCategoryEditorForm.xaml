@@ -1,0 +1,27 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.GroceryCategoryEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+        <TextBlock Style="{StaticResource CardBody}" FontWeight="SemiBold" Text="{Binding SelectedCategory.Name}"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly limit ($)"/>
+        <TextBox Style="{StaticResource FormTextBox}"
+                 Text="{Binding CategoryLimit, UpdateSourceTrigger=PropertyChanged}"
+                 AutomationProperties.Name="Weekly limit for this category"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="What happens to unspent money"/>
+        <ComboBox Style="{StaticResource FormComboBox}"
+                  ItemsSource="{Binding RolloverRules}"
+                  DisplayMemberPath="Name"
+                  SelectedValuePath="Value"
+                  SelectedValue="{Binding CategoryRollover}"
+                  AutomationProperties.Name="Rollover rule"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
+                  Content="Essential food, protected before discretionary spending"
+                  IsChecked="{Binding CategoryIsEssential}"
+                  AutomationProperties.Name="Essential food"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,6,0,0"
+                  Content="Normally supplied by food assistance rather than cash"
+                  IsChecked="{Binding CategorySuppliedByAssistance}"
+                  AutomationProperties.Name="Supplied by food assistance"/>
+    </StackPanel>
+</UserControl>

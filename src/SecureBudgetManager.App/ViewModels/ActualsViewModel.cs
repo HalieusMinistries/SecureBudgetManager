@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
 using SecureBudgetManager.Core.Expenses;
@@ -22,7 +24,7 @@ public sealed record ComparisonRow(string Name, string Expected, string Actual, 
 
 public sealed record PayslipListItem(Guid Id, string Date, string Source, string Gross, string Net, string Mileage);
 
-public sealed partial class ActualsViewModel : PageViewModel
+public sealed partial class ActualsViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -79,6 +81,140 @@ public sealed partial class ActualsViewModel : PageViewModel
     [ObservableProperty] private string carryForwardText = string.Empty;
     [ObservableProperty] private string? errorMessage;
     [ObservableProperty] private string? statusMessage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsTransactionEditor))]
+    private bool isEditorOpen;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsTransactionEditor))]
+    private bool isPayslipEditor;
+    private Guid? _editingTransactionId;
+    private string _originalFingerprint = string.Empty;
+
+    public bool IsTransactionEditor => IsEditorOpen && !IsPayslipEditor;
+
+    public string EditorTitle => IsPayslipEditor
+        ? "Record a payslip"
+        : _editingTransactionId is null ? "Record a transaction" : "Edit a transaction";
+
+    public string EditorSaveLabel => IsPayslipEditor ? "Save payslip" : "Save transaction";
+
+    public string? EditorEffectPreview =>
+        IsPayslipEditor
+            ? "A payslip records what actually arrived. Mileage reimbursement stays outside taxable earnings."
+            : "A transaction records money that already left or came back. It does not change the planned bill.";
+
+    public bool HasEditorChanges => IsEditorOpen && ActualsFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => IsPayslipEditor ? AddPayslipCommand : AddTransactionCommand;
+
+    public ICommand CancelEditorCommand => CancelActualsEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this record?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        IsPayslipEditor = false;
+        _editingTransactionId = null;
+        ErrorMessage = null;
+    }
+
+    private string ActualsFingerprint() =>
+        IsPayslipEditor
+            ? $"{SelectedIncomeId}|{PayslipDate}|{PayslipGross}|{PayslipFederal}|{PayslipState}|{PayslipSocialSecurity}|{PayslipMedicare}|{PayslipPreTax}|{PayslipPostTax}|{PayslipReimbursement}|{PayslipHours}"
+            : $"{Description}|{Amount}|{Date}|{CategoryName}|{LinkedExpenseId}|{IsRefund}|{IsSplitLine}|{Notes}";
+
+    [RelayCommand]
+    private void CancelActualsEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void BeginAddTransaction()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingTransactionId = null;
+        IsPayslipEditor = false;
+        Description = string.Empty;
+        Amount = string.Empty;
+        Notes = string.Empty;
+        IsRefund = false;
+        IsSplitLine = false;
+        Date = DateTime.Today;
+        _originalFingerprint = ActualsFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginAddPayslip()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        IsPayslipEditor = true;
+        _originalFingerprint = ActualsFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEditTransaction(TransactionListItem? item)
+    {
+        if (item is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var transaction = _session.Document.Transactions.FirstOrDefault(entry => entry.Id == item.Id);
+        if (transaction is null)
+        {
+            return;
+        }
+
+        _editingTransactionId = transaction.Id;
+        IsPayslipEditor = false;
+        Description = transaction.Description;
+        Amount = AmountParsing.Format(transaction.Amount);
+        Date = transaction.Date.ToDateTime(TimeOnly.MinValue);
+        CategoryName = transaction.Category.Name;
+        LinkedExpenseId = transaction.ExpenseItemId;
+        IsRefund = transaction.IsRefund;
+        IsSplitLine = transaction.SplitParentId is not null;
+        Notes = transaction.Notes ?? string.Empty;
+        _originalFingerprint = ActualsFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
 
     [RelayCommand]
     private async Task AddTransactionAsync(CancellationToken cancellationToken)
@@ -94,18 +230,31 @@ public sealed partial class ActualsViewModel : PageViewModel
                        ?? ExpenseCategory.Custom(CategoryName);
         var document = _session.Document;
         var transactions = document.Transactions.ToList();
-        transactions.Add(new ExpenseTransaction
+        var existing = _editingTransactionId is { } editingId
+            ? transactions.FirstOrDefault(entry => entry.Id == editingId)
+            : null;
+        var recorded = new ExpenseTransaction
         {
-            Id = Guid.NewGuid(),
+            Id = existing?.Id ?? Guid.NewGuid(),
             ExpenseItemId = LinkedExpenseId,
             Date = DateOnly.FromDateTime(Date.Value),
             Description = Description.Trim(),
             Amount = money,
             Category = category,
             IsRefund = IsRefund,
-            SplitParentId = IsSplitLine ? Guid.NewGuid() : null,
+            SplitParentId = existing?.SplitParentId ?? (IsSplitLine ? Guid.NewGuid() : null),
+            IsConfirmed = existing?.IsConfirmed ?? false,
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim()
-        });
+        };
+        var index = transactions.FindIndex(entry => entry.Id == recorded.Id);
+        if (index >= 0)
+        {
+            transactions[index] = recorded;
+        }
+        else
+        {
+            transactions.Add(recorded);
+        }
 
         if (!await CommitAsync(document with { Transactions = transactions }, cancellationToken))
         {
@@ -118,6 +267,7 @@ public sealed partial class ActualsViewModel : PageViewModel
         IsRefund = false;
         IsSplitLine = false;
         StatusMessage = "Transaction saved.";
+        DismissEditor();
     }
 
     [RelayCommand]
@@ -217,6 +367,7 @@ public sealed partial class ActualsViewModel : PageViewModel
         var comparison = IncomeReconciler.Compare(expected, payslip);
         ComparisonNote = comparison.Explanation;
         StatusMessage = "Payslip saved. Mileage and other reimbursements stay outside taxable earnings.";
+        DismissEditor();
     }
 
     [RelayCommand]

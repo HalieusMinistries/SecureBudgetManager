@@ -41,7 +41,17 @@
             <ItemsControl ItemsSource="{Binding Items}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
+                        <Border Style="{StaticResource SelectableListRow}"
+                                Focusable="True"
+                                AutomationProperties.Name="{Binding Name}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" MinWidth="0"/>
@@ -86,120 +96,6 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-
-            <Border Style="{StaticResource Card}"
-                    Visibility="{Binding IsEditorOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="{Binding EditorTitle}"/>
-
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Income name"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding EditorName, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Income name"/>
-
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Owner"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding OwnerOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding EditorOwnerId}"
-                              AutomationProperties.Name="Income owner"/>
-
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Type"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding KindOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding EditorKind}"
-                              AutomationProperties.Name="Income type"/>
-
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Pay frequency"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding FrequencyOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding EditorFrequency}"
-                              AutomationProperties.Name="Pay frequency"/>
-
-                    <StackPanel Visibility="{Binding IsHourly, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Hourly rate"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorHourlyRate, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hourly rate"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Expected hours each week (conservative)"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorHoursConservative, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Conservative weekly hours"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Expected hours each week (normal)"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorHoursNormal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Normal weekly hours"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Expected hours each week (optimistic)"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorHoursOptimistic, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Optimistic weekly hours"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Overtime multiplier"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorOvertimeMultiplier, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Overtime multiplier"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Overtime hours each week (conservative / normal / optimistic)"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" MinWidth="0"/>
-                                <ColumnDefinition Width="*" MinWidth="0"/>
-                                <ColumnDefinition Width="*" MinWidth="0"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0" Style="{StaticResource FormTextBox}" Margin="0,0,4,0" Text="{Binding EditorOvertimeConservative, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Conservative overtime hours"/>
-                            <TextBox Grid.Column="1" Style="{StaticResource FormTextBox}" Margin="4,0" Text="{Binding EditorOvertimeNormal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Normal overtime hours"/>
-                            <TextBox Grid.Column="2" Style="{StaticResource FormTextBox}" Margin="4,0,0,0" Text="{Binding EditorOvertimeOptimistic, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Optimistic overtime hours"/>
-                        </Grid>
-                    </StackPanel>
-
-                    <StackPanel Visibility="{Binding IsSalary, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Annual salary"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorAnnualSalary, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Annual salary"/>
-                    </StackPanel>
-
-                    <StackPanel Visibility="{Binding IsFixedRecurring, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Amount each pay period"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorPeriodAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Amount per pay period"/>
-                    </StackPanel>
-
-                    <StackPanel Visibility="{Binding IsMileage, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Miles each pay period"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorMiles, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Miles per pay period"/>
-                        <TextBlock Style="{StaticResource FieldLabel}" Text="Rate per mile"/>
-                        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding EditorRatePerMile, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Rate per mile"/>
-                        <TextBlock Style="{StaticResource HintText}" Text="Mileage reimbursement is stored as non-taxable and is not mixed with ordinary earnings."/>
-                    </StackPanel>
-
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,12,0,0"
-                              Content="This is a reimbursement (not taxable earnings)"
-                              IsChecked="{Binding EditorIsReimbursement}"
-                              Visibility="{Binding ShowTaxable, Converter={StaticResource BooleanToVisibilityConverter}}"
-                              AutomationProperties.Name="Reimbursement designation"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,8,0,0"
-                              Content="Taxable earnings"
-                              IsChecked="{Binding EditorIsTaxable}"
-                              Visibility="{Binding ShowTaxable, Converter={StaticResource BooleanToVisibilityConverter}}"
-                              AutomationProperties.Name="Taxable designation"/>
-
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Known payday"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}"
-                                SelectedDate="{Binding EditorStartDate}"
-                                AutomationProperties.Name="Known payday"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employment start date"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}"
-                                SelectedDate="{Binding EditorEmploymentStartDate}"
-                                AutomationProperties.Name="Employment start date"/>
-                    <TextBlock Style="{StaticResource HintText}"
-                               Text="Employment start is not the payday. A first paycheque shorter than a normal week is not treated as a full week unless hours are recorded."/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}"
-                              Margin="0,12,0,0"
-                              Content="Active"
-                              IsChecked="{Binding EditorIsActive}"
-                              AutomationProperties.Name="Income is active"/>
-
-                    <TextBlock Style="{StaticResource HintText}" Text="{Binding EquivalentSummary}"/>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Content="Save income" Command="{Binding SaveEntryCommand}" AutomationProperties.Name="Save income"/>
-                        <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Content="Cancel" Command="{Binding CancelEditorCommand}" AutomationProperties.Name="Cancel income editor"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
 
             <Border Style="{StaticResource ErrorCard}"
                     Visibility="{Binding HasError, Converter={StaticResource BooleanToVisibilityConverter}}">

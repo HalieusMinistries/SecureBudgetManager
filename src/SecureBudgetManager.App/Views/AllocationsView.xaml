@@ -11,113 +11,76 @@
             <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
             <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
 
+            <Border Style="{StaticResource Card}"
+                    Visibility="{Binding HasReservations, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource CardTitle}" Text="No bills yet"/>
+                    <TextBlock Style="{StaticResource CardBody}"
+                               Text="Add rent and other recurring costs on Expenses. They appear here so you can assign who pays, record a payment, or reserve money already set aside."/>
+                </StackPanel>
+            </Border>
+
             <Border Style="{StaticResource Card}">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Bills and reservations"/>
                     <TextBlock Style="{StaticResource CardBody}" Text="{Binding Totals}"/>
+                    <TextBlock Style="{StaticResource HintText}"
+                               Text="Click a bill to select it. Double-click or choose Open to assign, pay, or reserve without leaving this list."/>
                     <ItemsControl ItemsSource="{Binding Reservations}" Margin="0,8,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource ListRow}">
-                                    <StackPanel>
-                                        <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
-                                            <Run Text="{Binding Name, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Owner, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Classification, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="{Binding Category, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Priority, Mode=OneWay}"/>
-                                            <Run Text=" · "/><Run Text="{Binding Frequency, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="Required "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
-                                            <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
-                                            <Run Text=" · paid "/><Run Text="{Binding AmountPaid, Mode=OneWay}"/>
-                                            <Run Text=" · reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
-                                            <Run Text=" · still required "/><Run Text="{Binding StillRequired, Mode=OneWay}"/>
-                                            <Run Text=" · from next paycheque "/><Run Text="{Binding RequiredNow, Mode=OneWay}"/>
-                                            <Run Text=" · paydays remaining "/><Run Text="{Binding PaydaysRemaining, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-                                            <Run Text="{Binding Status, Mode=OneWay}"/>
-                                        </TextBlock>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Consequence}"/>
-                                        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Explanation}"/>
-                                    </StackPanel>
+                                <Border Style="{StaticResource SelectableListRow}"
+                                        Focusable="True"
+                                        AutomationProperties.Name="{Binding Name}">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftClick"
+                                                      Command="{Binding DataContext.SelectBillCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                        <MouseBinding MouseAction="LeftDoubleClick"
+                                                      Command="{Binding DataContext.OpenBillCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                        <KeyBinding Key="Return"
+                                                    Command="{Binding DataContext.OpenBillCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" MinWidth="0"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                            <TextBlock Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold">
+                                                <Run Text="{Binding Name, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Owner, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Classification, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="{Binding Category, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Priority, Mode=OneWay}"/>
+                                                <Run Text=" · "/><Run Text="{Binding Frequency, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                                                <Run Text="Required "/><Run Text="{Binding AmountDue, Mode=OneWay}"/>
+                                                <Run Text=" · due "/><Run Text="{Binding DueDate, Mode=OneWay}"/>
+                                                <Run Text=" · paid "/><Run Text="{Binding AmountPaid, Mode=OneWay}"/>
+                                                <Run Text=" · reserved "/><Run Text="{Binding AlreadyReserved, Mode=OneWay}"/>
+                                                <Run Text=" · still required "/><Run Text="{Binding StillRequired, Mode=OneWay}"/>
+                                            </TextBlock>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Status}"/>
+                                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding Consequence}"/>
+                                        </StackPanel>
+                                        <Button Grid.Column="1"
+                                                Style="{StaticResource CompactButton}"
+                                                VerticalAlignment="Center"
+                                                Content="Open"
+                                                Command="{Binding DataContext.OpenBillCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                CommandParameter="{Binding}"
+                                                AutomationProperties.Name="Open bill details"/>
+                                    </Grid>
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Who pays this bill"/>
-                    <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap"
-                               Text="Unassigned bills stay visible. They are not deducted from either person until someone agrees to pay."/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Assignment"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding AssignmentOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding EditorAssignment}"
-                              AutomationProperties.Name="Bill assignment"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="If one person pays all"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding Members}"
-                              DisplayMemberPath="Name"
-                              SelectedItem="{Binding EditorPayer}"
-                              AutomationProperties.Name="Person who pays all"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="First adult share or amount"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding EditorFirstShare, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="First adult share"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Second adult share or amount"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding EditorSecondShare, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Second adult share"/>
-                    <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssignmentPreview}"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                        <Button Style="{StaticResource SecondaryButton}"
-                                Content="Show effect before saving"
-                                Command="{Binding PreviewAssignmentCommand}"
-                                AutomationProperties.Name="Preview bill assignment"/>
-                        <Button Style="{StaticResource PrimaryButton}"
-                                Margin="12,0,0,0"
-                                Content="Save assignment"
-                                Command="{Binding SaveAssignmentCommand}"
-                                AutomationProperties.Name="Save bill assignment"/>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Record what is already set aside"/>
-                    <TextBlock Style="{StaticResource CardBody}"
-                               Text="Recording a reserve stops the next payday being told to save for the same bill twice."/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Obligation"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding Reservations}"
-                              DisplayMemberPath="Name"
-                              SelectedItem="{Binding SelectedReservation}"
-                              AutomationProperties.Name="Obligation to record a reserve against"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount already set aside"/>
-                    <TextBox Style="{StaticResource FormTextBox}"
-                             Text="{Binding ReserveAmount, UpdateSourceTrigger=PropertyChanged}"
-                             AutomationProperties.Name="Amount already set aside"/>
-                    <CheckBox Margin="0,10,0,0"
-                              Content="Keep this money out of safe-to-spend"
-                              IsChecked="{Binding ReserveIsProtected}"
-                              AutomationProperties.Name="Keep this reserve out of safe to spend"/>
-                    <Button Style="{StaticResource PrimaryButton}"
-                            Margin="0,12,0,0"
-                            HorizontalAlignment="Left"
-                            Content="Save reserve"
-                            Command="{Binding SaveReserveCommand}"
-                            AutomationProperties.Name="Save the recorded reserve"/>
                 </StackPanel>
             </Border>
 

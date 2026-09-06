@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Debt;
 using SecureBudgetManager.Core.Models;
@@ -9,7 +11,7 @@ namespace SecureBudgetManager.App.ViewModels;
 
 public sealed record DebtListItem(Guid Id, string Name, string Balance, string Apr, string Minimum);
 
-public sealed partial class DebtViewModel : PageViewModel
+public sealed partial class DebtViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -52,6 +54,107 @@ public sealed partial class DebtViewModel : PageViewModel
     [ObservableProperty] private string comparisonText = string.Empty;
     [ObservableProperty] private string? errorMessage;
     [ObservableProperty] private string? statusMessage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    private bool isEditorOpen;
+    private Guid? _editingId;
+    private string _originalFingerprint = string.Empty;
+
+    public string EditorTitle => _editingId is null ? "Add a loan or card" : "Edit a loan or card";
+
+    public string EditorSaveLabel => "Save debt";
+
+    public string? EditorEffectPreview =>
+        string.IsNullOrWhiteSpace(ComparisonText) ? null : ComparisonText;
+
+    public bool HasEditorChanges => IsEditorOpen && DebtFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => AddDebtCommand;
+
+    public ICommand CancelEditorCommand => CancelDebtEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this debt?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        _editingId = null;
+        ErrorMessage = null;
+    }
+
+    private string DebtFingerprint() =>
+        $"{Name}|{Kind}|{Balance}|{Apr}|{Minimum}|{PromotionalApr}|{PromotionalEnds}";
+
+    [RelayCommand]
+    private void CancelDebtEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void BeginAdd()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingId = null;
+        Name = string.Empty;
+        Balance = string.Empty;
+        Apr = string.Empty;
+        Minimum = string.Empty;
+        PromotionalApr = string.Empty;
+        PromotionalEnds = null;
+        Kind = DebtKind.CreditCard;
+        _originalFingerprint = DebtFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEdit(DebtListItem? item)
+    {
+        if (item is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var debt = _session.Document.Debts.FirstOrDefault(entry => entry.Id == item.Id);
+        if (debt is null)
+        {
+            return;
+        }
+
+        _editingId = debt.Id;
+        Name = debt.Name;
+        Kind = debt.Kind;
+        Balance = AmountParsing.Format(debt.Balance);
+        Apr = AmountParsing.Format(debt.AnnualPercentageRate);
+        Minimum = AmountParsing.Format(debt.MinimumPayment);
+        PromotionalApr = debt.PromotionalRate is { } promo ? AmountParsing.Format(promo) : string.Empty;
+        PromotionalEnds = debt.PromotionalRateEnds?.ToDateTime(TimeOnly.MinValue);
+        _originalFingerprint = DebtFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
 
     [RelayCommand]
     private async Task AddDebtAsync(CancellationToken cancellationToken)
@@ -85,9 +188,9 @@ public sealed partial class DebtViewModel : PageViewModel
 
         var document = _session.Document;
         var debts = document.Debts.ToList();
-        debts.Add(new DebtAccount
+        var account = new DebtAccount
         {
-            Id = Guid.NewGuid(),
+            Id = _editingId ?? Guid.NewGuid(),
             Name = Name.Trim(),
             Kind = Kind,
             Balance = amount,
@@ -95,7 +198,16 @@ public sealed partial class DebtViewModel : PageViewModel
             MinimumPayment = payment,
             PromotionalRate = promo,
             PromotionalRateEnds = PromotionalEnds is { } ends ? DateOnly.FromDateTime(ends) : null
-        });
+        };
+        var index = debts.FindIndex(entry => entry.Id == account.Id);
+        if (index >= 0)
+        {
+            debts[index] = account;
+        }
+        else
+        {
+            debts.Add(account);
+        }
 
         if (!await CommitAsync(document with { Debts = debts }, cancellationToken))
         {
@@ -109,6 +221,7 @@ public sealed partial class DebtViewModel : PageViewModel
         PromotionalApr = string.Empty;
         PromotionalEnds = null;
         StatusMessage = "Debt saved.";
+        DismissEditor();
         RefreshComparison();
     }
 

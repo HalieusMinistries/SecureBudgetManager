@@ -9,33 +9,29 @@
             <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
             <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
 
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Record a transaction"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Description"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction description"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Amount"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction amount"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Date"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding Date}" AutomationProperties.Name="Transaction date"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
-                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding CategoryOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding CategoryName}" AutomationProperties.Name="Transaction category"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Linked planned expense"/>
-                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding ExpenseOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding LinkedExpenseId}" AutomationProperties.Name="Linked expense"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Refund or reimbursement" IsChecked="{Binding IsRefund}" AutomationProperties.Name="Is refund"/>
-                    <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="This is one line of a split transaction" IsChecked="{Binding IsSplitLine}" AutomationProperties.Name="Is split line"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Notes"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction notes"/>
-                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save transaction" Command="{Binding AddTransactionCommand}" AutomationProperties.Name="Save transaction"/>
-                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
-                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
-                </StackPanel>
-            </Border>
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="0"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Recorded transactions" VerticalAlignment="Center" Margin="0"/>
+                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Margin="0,0,8,0" Content="Add transaction" Command="{Binding BeginAddTransactionCommand}" AutomationProperties.Name="Add transaction"/>
+                <Button Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="Add payslip" Command="{Binding BeginAddPayslipCommand}" AutomationProperties.Name="Add payslip"/>
+            </Grid>
 
             <ItemsControl ItemsSource="{Binding Transactions}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
+                        <Border Style="{StaticResource SelectableListRow}" Focusable="True" AutomationProperties.Name="{Binding Description}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditTransactionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditTransactionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -54,6 +50,10 @@
                                     </TextBlock>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Style="{StaticResource CompactButton}" Content="Edit"
+                                            Command="{Binding DataContext.BeginEditTransactionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Edit transaction"/>
                                     <Button Style="{StaticResource CompactButton}" Content="Reconcile"
                                             Command="{Binding DataContext.ConfirmTransactionCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                             CommandParameter="{Binding}"
@@ -95,37 +95,7 @@
                 </StackPanel>
             </Border>
 
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Actual payslip"/>
-                    <TextBlock Style="{StaticResource CardBody}" Text="Compare a real payslip with the estimate. Mileage reimbursement is stored separately from taxable earnings."/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Income source"/>
-                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding IncomeOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding SelectedIncomeId}" AutomationProperties.Name="Payslip income source"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Pay date"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding PayslipDate}" AutomationProperties.Name="Payslip date"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Gross pay"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipGross, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip gross"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Federal withholding"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipFederal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip federal"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Utah / state withholding"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipState, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip state"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Social Security"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipSocialSecurity, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip Social Security"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Medicare"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipMedicare, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip Medicare"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Other pre-tax deductions"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipPreTax, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip pre-tax"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Post-tax deductions"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipPostTax, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip post-tax"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Mileage or other non-taxable reimbursement"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipReimbursement, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip reimbursement"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Hours worked"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipHours, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip hours"/>
-                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save payslip" Command="{Binding AddPayslipCommand}" AutomationProperties.Name="Save payslip"/>
-                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding ComparisonNote}"/>
-                </StackPanel>
-            </Border>
-
+            <TextBlock Style="{StaticResource CardTitle}" Text="Recorded payslips"/>
             <ItemsControl ItemsSource="{Binding Payslips}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -150,9 +120,12 @@
             <Border Style="{StaticResource Card}" Margin="0">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Carry balance forward"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Closing / next starting balance"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Closing / next starting balance ($)"/>
                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CarryForwardText, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Carry forward balance"/>
                     <Button Style="{StaticResource SecondaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save as next starting balance" Command="{Binding CarryBalanceForwardCommand}" AutomationProperties.Name="Carry balance forward"/>
+                    <TextBlock Style="{StaticResource CardBody}" Text="{Binding ComparisonNote}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
                 </StackPanel>
             </Border>
         </StackPanel>

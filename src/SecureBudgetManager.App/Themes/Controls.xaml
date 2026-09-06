@@ -472,6 +472,20 @@
         <Setter Property="CornerRadius" Value="8"/>
         <Setter Property="Padding" Value="12,10"/>
         <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="SnapsToDevicePixels" Value="True"/>
+    </Style>
+
+    <Style x:Key="SelectableListRow" TargetType="Border" BasedOn="{StaticResource ListRow}">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}"/>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="HintText" TargetType="TextBlock">

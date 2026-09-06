@@ -184,7 +184,17 @@
                     <ItemsControl ItemsSource="{Binding Benefits}" Margin="0,12,0,0">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
-                                <Border Style="{StaticResource ListRow}">
+                                <Border Style="{StaticResource SelectableListRow}"
+                                        Focusable="True"
+                                        AutomationProperties.Name="{Binding Name}">
+                                    <Border.InputBindings>
+                                        <MouseBinding MouseAction="LeftDoubleClick"
+                                                      Command="{Binding DataContext.BeginEditBenefitCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                      CommandParameter="{Binding}"/>
+                                        <KeyBinding Key="Return"
+                                                    Command="{Binding DataContext.BeginEditBenefitCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                    CommandParameter="{Binding}"/>
+                                    </Border.InputBindings>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" MinWidth="0"/>
@@ -225,50 +235,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                </StackPanel>
-            </Border>
-
-            <Border Style="{StaticResource Card}"
-                    Visibility="{Binding ShowBenefitEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="{Binding BenefitEditorTitle}"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Benefit name"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit name"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding BenefitKindOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding BenefitKind}"
-                              AutomationProperties.Name="Benefit kind"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employee premium each period"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitPremium, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employee premium"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Premium frequency"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding FrequencyOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding BenefitFrequency}"
-                              AutomationProperties.Name="Benefit premium frequency"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Tax treatment"/>
-                    <ComboBox Style="{StaticResource FormComboBox}"
-                              ItemsSource="{Binding TreatmentOptions}"
-                              DisplayMemberPath="Name"
-                              SelectedValuePath="Value"
-                              SelectedValue="{Binding BenefitTreatment}"
-                              AutomationProperties.Name="Benefit tax treatment"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Employer contribution each period (not take-home)"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitEmployerContribution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Employer benefit contribution"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Coverage amount (life, AD&amp;D, critical illness)"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding BenefitCoverageAmount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Benefit coverage amount"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Effective date"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitEffectiveDate}" AutomationProperties.Name="Benefit effective date"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Renewal or end date (optional)"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding BenefitRenewalDate}" AutomationProperties.Name="Benefit renewal date"/>
-                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
-                        <Button Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Content="Save benefit" Command="{Binding SaveBenefitCommand}" AutomationProperties.Name="Save benefit"/>
-                        <Button Style="{StaticResource SecondaryButton}" Margin="8,0,0,0" Content="Cancel" Command="{Binding CancelBenefitCommand}" AutomationProperties.Name="Cancel benefit editor"/>
-                    </StackPanel>
                 </StackPanel>
             </Border>
 

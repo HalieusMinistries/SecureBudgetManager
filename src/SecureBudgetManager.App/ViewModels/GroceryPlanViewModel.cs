@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Guidance;
 using SecureBudgetManager.Core.Models;
@@ -26,7 +28,7 @@ public sealed record GroceryCategoryRow(
 /// Groceries by category rather than one figure, because "we spend too much on food" is not
 /// something a household can act on until it can see which part of the shop it is.
 /// </summary>
-public sealed partial class GroceryPlanViewModel : PageViewModel
+public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -73,7 +75,59 @@ public sealed partial class GroceryPlanViewModel : PageViewModel
     private string fallbackSummary = string.Empty;
 
     [ObservableProperty]
+    private bool isEditorOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
     private GroceryCategoryRow? selectedCategory;
+
+    public string EditorTitle => SelectedCategory is { } category
+        ? category.Name
+        : "Grocery category";
+
+    public string EditorSaveLabel => "Save category";
+
+    public string? EditorEffectPreview =>
+        "A weekly grocery limit is the most you intend to spend in this part of the shop.";
+
+    public bool HasEditorChanges => IsEditorOpen;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveCategoryCommand;
+
+    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        DismissEditor();
+        return true;
+    }
+
+    public void DismissEditor() => IsEditorOpen = false;
+
+    [RelayCommand]
+    private void OpenCategory(GroceryCategoryRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedCategory = row;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void CancelEditor() => DismissEditor();
 
     [ObservableProperty]
     private string categoryLimit = string.Empty;
@@ -258,8 +312,13 @@ public sealed partial class GroceryPlanViewModel : PageViewModel
     }
 
     [RelayCommand]
-    private async Task RemoveCategoryAsync(CancellationToken cancellationToken)
+    private async Task RemoveCategoryAsync(GroceryCategoryRow? row, CancellationToken cancellationToken)
     {
+        if (row is not null)
+        {
+            SelectedCategory = row;
+        }
+
         if (!_session.IsOpen || SelectedCategory is not { } selected)
         {
             return;

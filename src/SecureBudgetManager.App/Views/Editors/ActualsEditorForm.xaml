@@ -1,0 +1,50 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.ActualsEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <StackPanel Visibility="{Binding IsTransactionEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="What actually happened"/>
+            <TextBlock Style="{StaticResource HintText}" Text="Use this for money that already left the account, or came back as a refund."/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Description (required)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction description"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Amount ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Amount, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction amount"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Date"/>
+            <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding Date}" AutomationProperties.Name="Transaction date"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+            <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding CategoryOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding CategoryName}" AutomationProperties.Name="Transaction category"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Linked planned expense (optional)"/>
+            <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding ExpenseOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding LinkedExpenseId}" AutomationProperties.Name="Linked expense"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Refund or reimbursement" IsChecked="{Binding IsRefund}" AutomationProperties.Name="Is refund"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="This is one line of a split transaction" IsChecked="{Binding IsSplitLine}" AutomationProperties.Name="Is split line"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Notes (optional)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Transaction notes"/>
+        </StackPanel>
+        <StackPanel Visibility="{Binding IsPayslipEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Actual payslip"/>
+            <TextBlock Style="{StaticResource HintText}" Text="Compare a real payslip with the estimate. Mileage reimbursement is stored separately from taxable earnings."/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Income source"/>
+            <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding IncomeOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding SelectedIncomeId}" AutomationProperties.Name="Payslip income source"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Pay date"/>
+            <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding PayslipDate}" AutomationProperties.Name="Payslip date"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Gross pay ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipGross, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip gross"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Federal withholding ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipFederal, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip federal"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="State withholding ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipState, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip state"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Social Security ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipSocialSecurity, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip Social Security"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Medicare ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipMedicare, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip Medicare"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Other pre-tax deductions ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipPreTax, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip pre-tax"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Post-tax deductions ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipPostTax, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip post-tax"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Mileage or other non-taxable reimbursement ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipReimbursement, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip reimbursement"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Hours worked"/>
+            <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PayslipHours, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Payslip hours"/>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

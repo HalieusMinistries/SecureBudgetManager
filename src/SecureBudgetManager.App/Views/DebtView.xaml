@@ -9,33 +9,27 @@
             <TextBlock Style="{StaticResource PageTitle}" Text="{Binding Title}"/>
             <TextBlock Style="{StaticResource PageLead}" Text="{Binding Summary}"/>
 
-            <Border Style="{StaticResource Card}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource CardTitle}" Text="Add a loan or card"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Name"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt name"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Kind"/>
-                    <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding KindOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Kind}" AutomationProperties.Name="Debt kind"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Balance"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Balance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt balance"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="APR %"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Apr, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Debt APR"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Minimum payment"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Minimum, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Minimum payment"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Promotional APR % (optional)"/>
-                    <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PromotionalApr, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Promotional APR"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Promotional rate expires"/>
-                    <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding PromotionalEnds}" AutomationProperties.Name="Promotional rate expiry"/>
-                    <Button Style="{StaticResource PrimaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Save debt" Command="{Binding AddDebtCommand}" AutomationProperties.Name="Save debt"/>
-                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
-                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
-                </StackPanel>
-            </Border>
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="0"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Style="{StaticResource CardTitle}" Text="Loans and cards" VerticalAlignment="Center" Margin="0"/>
+                <Button Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="Add debt" Command="{Binding BeginAddCommand}" AutomationProperties.Name="Add debt"/>
+            </Grid>
 
             <ItemsControl ItemsSource="{Binding Debts}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <Border Style="{StaticResource ListRow}">
+                        <Border Style="{StaticResource SelectableListRow}" Focusable="True" AutomationProperties.Name="{Binding Name}">
+                            <Border.InputBindings>
+                                <MouseBinding MouseAction="LeftDoubleClick"
+                                              Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                              CommandParameter="{Binding}"/>
+                                <KeyBinding Key="Return"
+                                            Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"/>
+                            </Border.InputBindings>
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -51,10 +45,16 @@
                                         <Run Text="{Binding Minimum, Mode=OneWay}"/>
                                     </TextBlock>
                                 </StackPanel>
-                                <Button Grid.Column="1" Style="{StaticResource DangerButton}" Padding="10,6" FontSize="12" Content="Remove"
-                                        Command="{Binding DataContext.RemoveDebtCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
-                                        CommandParameter="{Binding}"
-                                        AutomationProperties.Name="Remove debt"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Style="{StaticResource CompactButton}" Content="Edit"
+                                            Command="{Binding DataContext.BeginEditCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Edit debt"/>
+                                    <Button Style="{StaticResource DangerButton}" Padding="10,6" FontSize="12" Content="Remove"
+                                            Command="{Binding DataContext.RemoveDebtCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                            CommandParameter="{Binding}"
+                                            AutomationProperties.Name="Remove debt"/>
+                                </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
@@ -64,10 +64,12 @@
             <Border Style="{StaticResource Card}" Margin="0">
                 <StackPanel>
                     <TextBlock Style="{StaticResource CardTitle}" Text="Snowball versus avalanche"/>
-                    <TextBlock Style="{StaticResource FieldLabel}" Text="Extra monthly budget above minimums"/>
+                    <TextBlock Style="{StaticResource FieldLabel}" Text="Extra monthly budget above minimums ($)"/>
                     <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ExtraBudget, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Extra debt budget"/>
                     <Button Style="{StaticResource SecondaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Compare strategies" Command="{Binding CompareCommand}" AutomationProperties.Name="Compare payoff strategies"/>
                     <TextBlock Style="{StaticResource CardBody}" Text="{Binding ComparisonText}"/>
+                    <TextBlock Style="{StaticResource HintText}" Foreground="{StaticResource Brush.Danger}" Text="{Binding ErrorMessage}"/>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
                 </StackPanel>
             </Border>
         </StackPanel>
