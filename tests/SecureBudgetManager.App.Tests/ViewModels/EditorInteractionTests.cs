@@ -98,7 +98,7 @@ public sealed class EditorInteractionTests
     }
 
     [Fact]
-    public async Task OpeningABillAndPreviewingAssignmentDoesNotChangeSavedData()
+    public void OpeningABillAndPreviewingAssignmentDoesNotChangeSavedData()
     {
         var (session, repository, _) = SessionFactory.Open();
         var first = Guid.NewGuid();
@@ -129,7 +129,7 @@ public sealed class EditorInteractionTests
         }, out _));
 
         var vm = new AllocationsViewModel(session, new FakeUserDialog(), TimeProvider.System);
-        var row = Assert.Single(vm.Reservations.Where(item => item.Name == "Rent"));
+        var row = Assert.Single(vm.Reservations, item => item.Name == "Rent");
         var saves = repository.SaveCount;
 
         vm.OpenBillCommand.Execute(row);
