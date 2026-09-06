@@ -1,5 +1,8 @@
+using System.Globalization;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Guidance;
 using SecureBudgetManager.Core.Models;
@@ -14,7 +17,8 @@ public sealed record ProductRow(
     string Category,
     string Brand,
     string Size,
-    string Status);
+    string Status,
+    bool IsSelected = false);
 
 public sealed record PriceRow(
     Guid Id,
@@ -28,11 +32,13 @@ public sealed record PriceRow(
     string TaxNote);
 
 /// <summary>Household products and dated price observations. Guidance never overwrites an actual payment.</summary>
-public sealed partial class ProductsViewModel : PageViewModel
+public sealed partial class ProductsViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
     private readonly TimeProvider _clock;
+    private Guid? _editingId;
+    private string _originalFingerprint = string.Empty;
 
     public ProductsViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
@@ -88,9 +94,155 @@ public sealed partial class ProductsViewModel : PageViewModel
     [ObservableProperty] private string? statusMessage;
     [ObservableProperty] private string? errorMessage;
     [ObservableProperty] private string categorySuggestion = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    private bool isEditorOpen;
+    [ObservableProperty] private double listScrollOffset;
+    [ObservableProperty] private Guid? selectedRecordId;
 
     public IReadOnlyList<ProductRow> Products { get; private set; } = [];
     public IReadOnlyList<PriceRow> Prices { get; private set; } = [];
+
+    public bool HasProducts => Products.Count > 0;
+
+    public string EditorTitle => _editingId is null ? "Add product" : "Edit product";
+
+    public string EditorSaveLabel => "Save product";
+
+    public string? EditorEffectPreview =>
+        "A larger pack is not assumed cheaper. A recorded shelf price stays as a dated observation.";
+
+    public bool HasEditorChanges => IsEditorOpen && ProductFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveProductCommand;
+
+    public ICommand CancelEditorCommand => CancelProductEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this product?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        _editingId = null;
+        ErrorMessage = null;
+    }
+
+    private string ProductFingerprint() =>
+        $"{ProductName}|{Category}|{Subcategory}|{Brand}|{PackageSize}|{Quantity}|{UnitOfMeasure}|{UnitsPerPackage}|{IsEssential}|{Tier}|{PurchaseFrequency}|{IsPreferred}|{IsActive}|{TaxCategory}|{Notes}|{ShelfPrice}|{SalePrice}|{Retailer}|{City}|{TaxCollection}|{ExciseEmbedded}";
+
+    [RelayCommand]
+    private void CancelProductEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void SelectProduct(ProductRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = row.Id;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAdd()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingId = null;
+        SelectedProduct = null;
+        ProductName = string.Empty;
+        Category = string.Empty;
+        Subcategory = string.Empty;
+        Brand = string.Empty;
+        PackageSize = "1";
+        Quantity = "1";
+        UnitOfMeasure = "item";
+        UnitsPerPackage = "1";
+        IsEssential = false;
+        Tier = NeedTier.DiscretionaryFreedom;
+        PurchaseFrequency = Frequency.Weekly;
+        IsPreferred = false;
+        IsActive = true;
+        TaxCategory = ProductTaxCategory.Unknown;
+        Notes = string.Empty;
+        ShelfPrice = string.Empty;
+        SalePrice = string.Empty;
+        Retailer = string.Empty;
+        City = string.Empty;
+        TaxCollection = TaxCollectionMethod.Unknown;
+        ExciseEmbedded = false;
+        _originalFingerprint = ProductFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEdit(ProductRow? row)
+    {
+        if (row is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var product = _session.Document.Products.FirstOrDefault(item => item.Id == row.Id);
+        if (product is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = product.Id;
+        _editingId = product.Id;
+        ProductName = product.Name;
+        Category = product.Category;
+        Subcategory = product.Subcategory ?? string.Empty;
+        Brand = product.Brand ?? string.Empty;
+        PackageSize = product.PackageSize.ToString(CultureInfo.CurrentCulture);
+        Quantity = product.Quantity.ToString(CultureInfo.CurrentCulture);
+        UnitOfMeasure = product.UnitOfMeasure;
+        UnitsPerPackage = product.UnitsPerPackage.ToString(CultureInfo.CurrentCulture);
+        IsEssential = product.IsEssential;
+        Tier = product.Tier;
+        PurchaseFrequency = product.PurchaseFrequency;
+        IsPreferred = product.IsPreferred;
+        IsActive = product.IsActive;
+        TaxCategory = product.TaxCategory;
+        Notes = product.Notes ?? string.Empty;
+        ShelfPrice = string.Empty;
+        SalePrice = string.Empty;
+        Retailer = string.Empty;
+        City = string.Empty;
+        TaxCollection = TaxCollectionMethod.Unknown;
+        ExciseEmbedded = false;
+        _originalFingerprint = ProductFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        RematchSelection();
+    }
 
     [RelayCommand]
     private async Task SaveProductAsync(CancellationToken cancellationToken)
@@ -117,7 +269,7 @@ public sealed partial class ProductsViewModel : PageViewModel
 
         var product = new Product
         {
-            Id = SelectedProduct?.Id ?? Guid.NewGuid(),
+            Id = _editingId ?? SelectedProduct?.Id ?? Guid.NewGuid(),
             Name = ProductName.Trim(),
             Category = Category.Trim(),
             Subcategory = string.IsNullOrWhiteSpace(Subcategory) ? null : Subcategory.Trim(),
@@ -135,6 +287,7 @@ public sealed partial class ProductsViewModel : PageViewModel
             Notes = string.IsNullOrWhiteSpace(Notes) ? null : Notes.Trim()
         };
 
+        SelectedRecordId = product.Id;
         var products = _session.Document.Products.Where(item => item.Id != product.Id).Append(product).ToList();
 
         if (!_session.TryReplace(_session.Document with { Products = products }, out var error))
@@ -147,14 +300,20 @@ public sealed partial class ProductsViewModel : PageViewModel
         StatusMessage = await _session.SaveAsync(cancellationToken)
             ? "Product saved."
             : _session.LastError ?? "The product could not be saved.";
+
+        if (string.Equals(StatusMessage, "Product saved.", StringComparison.Ordinal))
+        {
+            DismissEditor();
+        }
     }
 
     [RelayCommand]
     private async Task SavePriceAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen || SelectedProduct is null)
+        var productId = _editingId ?? SelectedProduct?.Id;
+        if (!_session.IsOpen || productId is null)
         {
-            ErrorMessage = "Choose a product first.";
+            ErrorMessage = "Save the product first, then record a shelf price.";
             return;
         }
 
@@ -180,7 +339,7 @@ public sealed partial class ProductsViewModel : PageViewModel
         var observation = new PriceObservation
         {
             Id = Guid.NewGuid(),
-            ProductId = SelectedProduct.Id,
+            ProductId = productId.Value,
             Retailer = string.IsNullOrWhiteSpace(Retailer) ? null : Retailer.Trim(),
             Locality = new CostLocality
             {
@@ -217,13 +376,14 @@ public sealed partial class ProductsViewModel : PageViewModel
     [RelayCommand]
     private async Task DeactivateProductAsync(CancellationToken cancellationToken)
     {
-        if (SelectedProduct is null || !_session.IsOpen)
+        var productId = _editingId ?? SelectedProduct?.Id ?? SelectedRecordId;
+        if (productId is null || !_session.IsOpen)
         {
             return;
         }
 
         var products = _session.Document.Products
-            .Select(product => product.Id == SelectedProduct.Id ? product with { IsActive = false } : product)
+            .Select(product => product.Id == productId ? product with { IsActive = false } : product)
             .ToList();
 
         if (!_session.TryReplace(_session.Document with { Products = products }, out var error))
@@ -248,6 +408,7 @@ public sealed partial class ProductsViewModel : PageViewModel
             Prices = [];
             ProductName = string.Empty;
             Category = string.Empty;
+            Subcategory = string.Empty;
             Brand = string.Empty;
             ShelfPrice = string.Empty;
             SalePrice = string.Empty;
@@ -257,6 +418,8 @@ public sealed partial class ProductsViewModel : PageViewModel
             StatusMessage = null;
             ErrorMessage = null;
             SelectedProduct = null;
+            SelectedRecordId = null;
+            DismissEditor();
             Notify();
             return;
         }
@@ -272,8 +435,11 @@ public sealed partial class ProductsViewModel : PageViewModel
                 product.Category,
                 product.Brand ?? "—",
                 $"{product.PackageSize} {product.UnitOfMeasure}",
-                product.IsActive ? "Active" : "Inactive"))
+                product.IsActive ? "Active" : "Inactive",
+                product.Id == SelectedRecordId))
             .ToList();
+
+        SelectedProduct = Products.FirstOrDefault(item => item.Id == SelectedRecordId);
 
         Prices = document.PriceObservations
             .OrderByDescending(item => item.ObservedOn)
@@ -322,9 +488,20 @@ public sealed partial class ProductsViewModel : PageViewModel
         Notify();
     }
 
+    private void RematchSelection()
+    {
+        Products = Products
+            .Select(item => item with { IsSelected = item.Id == SelectedRecordId })
+            .ToList();
+        SelectedProduct = Products.FirstOrDefault(item => item.Id == SelectedRecordId);
+        OnPropertyChanged(nameof(Products));
+        OnPropertyChanged(nameof(HasProducts));
+    }
+
     private void Notify()
     {
         OnPropertyChanged(nameof(Products));
         OnPropertyChanged(nameof(Prices));
+        OnPropertyChanged(nameof(HasProducts));
     }
 }

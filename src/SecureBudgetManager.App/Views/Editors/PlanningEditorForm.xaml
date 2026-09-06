@@ -1,0 +1,111 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.PlanningEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource CardBody}" Text="A $235 advertised payment is not the true cost. Leave a field blank if you do not know it yet."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Description"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Vehicle description"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Proposed purchase date"/>
+        <DatePicker Style="{StaticResource FormDatePicker}" SelectedDate="{Binding PurchaseDate}" AutomationProperties.Name="Proposed purchase date"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Advertised monthly payment"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AdvertisedPayment, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Advertised monthly payment"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Purchase price"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding VehiclePrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Vehicle price"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Deposit / cash down"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding CashDownPayment, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Cash down payment"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Trade-in value"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding TradeInValue, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Trade-in value"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Amount still owed on trade-in"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding OutstandingLoan, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Outstanding loan on trade-in"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Sales tax %"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SalesTaxPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sales tax percent"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Dealer and document fees"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding DealerFees, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Dealer fees"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Title and registration"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding TitleFees, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Title and registration"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Loan APR %"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding LoanApr, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Loan APR"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Loan term (months)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding LoanTermMonths, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Loan term months"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Insurance increase / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding InsuranceIncrease, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Insurance increase"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Insurance deductible"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding InsuranceDeductible, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Insurance deductible"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Miles driven per month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MilesPerMonth, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Miles per month"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Miles per gallon"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MilesPerGallon, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Miles per gallon"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Fuel price per gallon"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding FuelPrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Fuel price"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Annual maintenance"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualMaintenance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Annual maintenance"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Monthly repair reserve"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MonthlyRepairReserve, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Repair reserve"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Annual tyre cost"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualTyres, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Annual tyre cost"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Annual registration / insurance renewal"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualRegistration, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Annual registration"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Inspection / emissions"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualInspection, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Inspection cost"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Parking / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MonthlyParking, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Parking"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Tolls / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MonthlyTolls, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Tolls"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Roadside assistance, GAP and add-ons / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding RoadsideAndGap, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="GAP and roadside"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Annual depreciation %"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding AnnualDepreciationPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Depreciation percent"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Replacement-vehicle savings / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MonthlyReplacementFund, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Replacement fund"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Opportunity cost / month"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MonthlyOpportunityCost, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Opportunity cost"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Savings interest you would have earned %"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SavingsInterestPercent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Savings interest rate"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Monthly saving if another vehicle is given up"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ReplacedVehicleSaving, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Replaced vehicle saving"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Used vehicle" IsChecked="{Binding IsUsedVehicle}" AutomationProperties.Name="Used vehicle"/>
+        <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+            <Button Style="{StaticResource PrimaryButton}" Content="Calculate true cost" Command="{Binding RecalculateCommand}" AutomationProperties.Name="Calculate true cost"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Postpone" Command="{Binding PostponeCommand}" AutomationProperties.Name="Postpone scenario"/>
+            <Button Style="{StaticResource SecondaryButton}" Content="Convert to budget" Command="{Binding ConvertToBudgetCommand}" AutomationProperties.Name="Convert scenario to budget"/>
+        </StackPanel>
+        <TextBlock Style="{StaticResource HintText}" Text="{Binding StatusMessage}"/>
+
+        <TextBlock Style="{StaticResource CardTitle}" Margin="0,16,0,0" Text="Advertised versus true cost"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding AdvertisedVsTrue}"/>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Expected"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding ExpectedRating}"/>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Best case"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding BestRating}"/>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Worst case"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding WorstRating}"/>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Emergency-fund impact"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding EmergencyImpact}"/>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Cash-flow impact"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding CashFlowImpact}"/>
+
+        <TextBlock Style="{StaticResource CardTitle}" Margin="0,12,0,0" Text="Why this rating"/>
+        <ItemsControl ItemsSource="{Binding Findings}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource ListRow}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Rule}" Foreground="{StaticResource Brush.Text}" FontWeight="SemiBold"/>
+                            <TextBlock Style="{StaticResource HintText}" Text="{Binding Result}"/>
+                            <TextBlock Style="{StaticResource HintText}" Text="{Binding Explanation}"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding WhatMustChange}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Style="{StaticResource HintText}" Text="{Binding}"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Style="{StaticResource CardTitle}" Text="Derived notes"/>
+        <TextBlock Style="{StaticResource CardBody}" Text="{Binding DerivedNotes}"/>
+    </StackPanel>
+</UserControl>

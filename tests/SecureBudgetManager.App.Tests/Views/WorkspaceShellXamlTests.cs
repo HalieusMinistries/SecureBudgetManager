@@ -17,6 +17,30 @@ public sealed class WorkspaceShellXamlTests
     }
 
     [Fact]
+    public void ProductPlanningAndGuidanceEditorsUseTheSharedOverlay()
+    {
+        var root = FindRepoRoot();
+        var overlay = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "Editors", "EditorOverlay.xaml"));
+        var products = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "ProductsView.xaml"));
+        var planning = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "PlanningView.xaml"));
+        var guidance = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "LocalGuidanceView.xaml"));
+
+        Assert.Contains("ProductEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("PlanningEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("GuidanceEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("BeginAddCommand", products, StringComparison.Ordinal);
+        Assert.Contains("BeginEditCommand", products, StringComparison.Ordinal);
+        Assert.Contains("LeftDoubleClick", products, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding SaveProductCommand}\"", products, StringComparison.Ordinal);
+        Assert.Contains("BeginAddCommand", planning, StringComparison.Ordinal);
+        Assert.Contains("BeginEditCommand", planning, StringComparison.Ordinal);
+        Assert.DoesNotContain("True-cost car planner", planning, StringComparison.Ordinal);
+        Assert.Contains("Save locality", guidance, StringComparison.Ordinal);
+        Assert.Contains("BeginAddCommand", guidance, StringComparison.Ordinal);
+        Assert.DoesNotContain("Enter or edit a figure", guidance, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImplicitViewTemplates_AreWrappedSoUserControlsDoNotRecurse()
     {
         var xaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "SecureBudgetManager.App", "App.xaml"));

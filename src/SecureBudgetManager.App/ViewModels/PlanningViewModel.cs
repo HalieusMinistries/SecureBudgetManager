@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Budgeting;
 using SecureBudgetManager.Core.CashFlow;
@@ -16,16 +18,18 @@ public sealed record ScenarioListItem(
     string Name,
     string Status,
     string Advertised,
-    string Date);
+    string Date,
+    bool IsSelected = false);
 
 public sealed record FindingRow(string Rule, string Result, string Explanation);
 
-public sealed partial class PlanningViewModel : PageViewModel
+public sealed partial class PlanningViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
     private readonly TimeProvider _clock;
     private Guid? _editingId;
+    private string _originalFingerprint = string.Empty;
 
     public PlanningViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
@@ -84,10 +88,107 @@ public sealed partial class PlanningViewModel : PageViewModel
     [ObservableProperty] private string derivedNotes = string.Empty;
     [ObservableProperty] private string? errorMessage;
     [ObservableProperty] private string? statusMessage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    private bool isEditorOpen;
+    [ObservableProperty] private double listScrollOffset;
+    [ObservableProperty] private Guid? selectedRecordId;
 
     public IReadOnlyList<FindingRow> Findings { get; private set; } = [];
 
     public IReadOnlyList<string> WhatMustChange { get; private set; } = [];
+
+    public bool HasScenarios => Scenarios.Count > 0;
+
+    public string EditorTitle => _editingId is null ? "Add scenario" : "Edit scenario";
+
+    public string EditorSaveLabel => "Save scenario";
+
+    public string? EditorEffectPreview =>
+        "Advertised payments are never treated as the true cost. Calculate, postpone or convert stay with this planner.";
+
+    public bool HasEditorChanges => IsEditorOpen && ScenarioFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveScenarioCommand;
+
+    public ICommand CancelEditorCommand => CancelScenarioEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this scenario?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        ErrorMessage = null;
+    }
+
+    private string ScenarioFingerprint() =>
+        $"{Description}|{PurchaseDate}|{AdvertisedPayment}|{VehiclePrice}|{CashDownPayment}|{TradeInValue}|{OutstandingLoan}|{SalesTaxPercent}|{DealerFees}|{TitleFees}|{LoanApr}|{LoanTermMonths}|{InsuranceIncrease}|{InsuranceDeductible}|{MilesPerMonth}|{MilesPerGallon}|{FuelPrice}|{AnnualMaintenance}|{MonthlyRepairReserve}|{AnnualTyres}|{AnnualRegistration}|{AnnualInspection}|{MonthlyParking}|{MonthlyTolls}|{RoadsideAndGap}|{AnnualDepreciationPercent}|{MonthlyReplacementFund}|{MonthlyOpportunityCost}|{SavingsInterestPercent}|{ReplacedVehicleSaving}|{IsUsedVehicle}";
+
+    [RelayCommand]
+    private void CancelScenarioEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void SelectScenario(ScenarioListItem? item)
+    {
+        if (item is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = item.Id;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAdd()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingId = null;
+        ClearCarForm();
+        ClearResults();
+        _originalFingerprint = ScenarioFingerprint();
+        ErrorMessage = null;
+        StatusMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEdit(ScenarioListItem? item)
+    {
+        if (item is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        ApplyScenario(item);
+        _originalFingerprint = ScenarioFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
 
     [RelayCommand]
     private void Recalculate()
@@ -143,6 +244,7 @@ public sealed partial class PlanningViewModel : PageViewModel
 
         var plan = CarPurchasePlanner.Build(inputs);
         var scenario = plan.Scenario with { Id = _editingId ?? Guid.NewGuid(), Status = ScenarioStatus.UnderConsideration };
+        SelectedRecordId = scenario.Id;
         var document = _session.Document;
         var list = document.Scenarios.ToList();
         var index = list.FindIndex(item => item.Id == scenario.Id);
@@ -162,17 +264,16 @@ public sealed partial class PlanningViewModel : PageViewModel
 
         _editingId = scenario.Id;
         StatusMessage = "Scenario saved. It is not part of the live budget until you convert it.";
+        _originalFingerprint = ScenarioFingerprint();
         Recalculate();
+        RematchSelection();
     }
 
     [RelayCommand]
-    private void LoadScenario(ScenarioListItem? item)
-    {
-        if (item is null)
-        {
-            return;
-        }
+    private void LoadScenario(ScenarioListItem? item) => BeginEdit(item);
 
+    private void ApplyScenario(ScenarioListItem item)
+    {
         var scenario = _session.Document.Scenarios.FirstOrDefault(entry => entry.Id == item.Id);
         if (scenario is null)
         {
@@ -180,11 +281,13 @@ public sealed partial class PlanningViewModel : PageViewModel
         }
 
         _editingId = scenario.Id;
+        SelectedRecordId = scenario.Id;
         Description = scenario.Name;
         PurchaseDate = scenario.ProposedStartDate.ToDateTime(TimeOnly.MinValue);
         AdvertisedPayment = AmountParsing.Format(scenario.AdvertisedAmount);
         Recalculate();
         StatusMessage = "Loaded the saved scenario. Re-enter missing car fields if you want to recalculate the loan.";
+        RematchSelection();
     }
 
     [RelayCommand]
@@ -463,10 +566,13 @@ public sealed partial class PlanningViewModel : PageViewModel
             StatusMessage = null;
             ErrorMessage = null;
             _editingId = null;
+            SelectedRecordId = null;
             ClearCarForm();
+            DismissEditor();
             OnPropertyChanged(nameof(Scenarios));
             OnPropertyChanged(nameof(Findings));
             OnPropertyChanged(nameof(WhatMustChange));
+            OnPropertyChanged(nameof(HasScenarios));
             return;
         }
 
@@ -476,9 +582,35 @@ public sealed partial class PlanningViewModel : PageViewModel
                 item.Name,
                 item.Status.ToString(),
                 item.AdvertisedAmount.ToDisplayString(),
-                item.ProposedStartDate.ToString("yyyy-MM-dd")))
+                item.ProposedStartDate.ToString("yyyy-MM-dd"),
+                item.Id == SelectedRecordId))
             .ToList();
         OnPropertyChanged(nameof(Scenarios));
+        OnPropertyChanged(nameof(HasScenarios));
+    }
+
+    private void RematchSelection()
+    {
+        Scenarios = Scenarios
+            .Select(item => item with { IsSelected = item.Id == SelectedRecordId })
+            .ToList();
+        OnPropertyChanged(nameof(Scenarios));
+        OnPropertyChanged(nameof(HasScenarios));
+    }
+
+    private void ClearResults()
+    {
+        Findings = [];
+        WhatMustChange = [];
+        AdvertisedVsTrue = string.Empty;
+        ExpectedRating = string.Empty;
+        BestRating = string.Empty;
+        WorstRating = string.Empty;
+        EmergencyImpact = string.Empty;
+        CashFlowImpact = string.Empty;
+        DerivedNotes = string.Empty;
+        OnPropertyChanged(nameof(Findings));
+        OnPropertyChanged(nameof(WhatMustChange));
     }
 
     private void ClearCarForm()

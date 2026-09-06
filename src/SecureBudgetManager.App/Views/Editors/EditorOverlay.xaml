@@ -85,6 +85,15 @@
                             <DataTemplate DataType="{x:Type vm:ActualsViewModel}">
                                 <editors:ActualsEditorForm/>
                             </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:ProductsViewModel}">
+                                <editors:ProductEditorForm/>
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlanningViewModel}">
+                                <editors:PlanningEditorForm/>
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:LocalGuidanceViewModel}">
+                                <editors:GuidanceEditorForm/>
+                            </DataTemplate>
                         </ContentControl.Resources>
                     </ContentControl>
                 </ScrollViewer>

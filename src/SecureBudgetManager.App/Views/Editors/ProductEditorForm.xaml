@@ -1,0 +1,50 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.ProductEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Name (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ProductName, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product name"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Category (required)"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Category, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product category"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Subcategory"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Subcategory, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product subcategory"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Brand"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Brand, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product brand"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Package size"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding PackageSize, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Package size"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Quantity"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product quantity"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Unit of measure"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding UnitOfMeasure, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Unit of measure"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Units per package"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding UnitsPerPackage, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Units per package"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="How often it is bought"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding Frequencies}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding PurchaseFrequency}" AutomationProperties.Name="Product purchase frequency"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Essential" IsChecked="{Binding IsEssential}" AutomationProperties.Name="Product is essential"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Preferred product" IsChecked="{Binding IsPreferred}" AutomationProperties.Name="Preferred product"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Active" IsChecked="{Binding IsActive}" AutomationProperties.Name="Product is active"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Needs-hierarchy tier"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TierOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding Tier}" AutomationProperties.Name="Product need tier"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Tax category"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TaxCategoryOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding TaxCategory}" AutomationProperties.Name="Product tax category"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Notes"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Product notes"/>
+        <Button Style="{StaticResource SecondaryButton}" Margin="0,12,0,16" HorizontalAlignment="Left" Content="Deactivate without deleting history" Command="{Binding DeactivateProductCommand}" AutomationProperties.Name="Deactivate product"/>
+
+        <TextBlock Style="{StaticResource CardTitle}" Text="Record a shelf price"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Save the product first if this is a new catalogue entry. Historical observations stay as recorded."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Shelf price"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ShelfPrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Shelf price"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Loyalty or sale price"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding SalePrice, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Sale price"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Retailer"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Retailer, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Retailer"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="City if different from the household locality"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding City, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Price observation city"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Tax collection"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding TaxCollectionOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding TaxCollection}" AutomationProperties.Name="Tax collection method"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Excise already in the shelf price" IsChecked="{Binding ExciseEmbedded}" AutomationProperties.Name="Excise embedded in shelf price"/>
+        <Button Style="{StaticResource SecondaryButton}" Margin="0,12,0,0" HorizontalAlignment="Left" Content="Record price" Command="{Binding SavePriceCommand}" AutomationProperties.Name="Record price observation"/>
+        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding CategorySuggestion}"/>
+    </StackPanel>
+</UserControl>

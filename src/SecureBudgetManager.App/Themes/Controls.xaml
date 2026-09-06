@@ -485,6 +485,11 @@
                 <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
                 <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}"/>
             </Trigger>
+            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
+                <Setter Property="Background" Value="{StaticResource Brush.AccentMuted}"/>
+                <Setter Property="BorderThickness" Value="2"/>
+            </DataTrigger>
         </Style.Triggers>
     </Style>
 

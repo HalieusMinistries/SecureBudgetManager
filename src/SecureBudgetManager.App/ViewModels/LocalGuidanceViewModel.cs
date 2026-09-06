@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.Guidance;
 
@@ -22,13 +24,14 @@ public sealed record GuidanceRow(
     string PackVersion,
     string UserSelected,
     string Difference,
-    string Notes);
+    string Notes,
+    bool IsSelected = false);
 
 /// <summary>
 /// Local cost references. A household new to Utah has no feel for what a week's shopping costs
 /// here, and the honest answer when nothing is recorded is to say so rather than invent a figure.
 /// </summary>
-public sealed partial class LocalGuidanceViewModel : PageViewModel
+public sealed partial class LocalGuidanceViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
@@ -147,9 +150,143 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
     [ObservableProperty]
     private string? errorMessage;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    private bool isEditorOpen;
+
+    [ObservableProperty]
+    private double listScrollOffset;
+
+    [ObservableProperty]
+    private Guid? selectedRecordId;
+
+    private Guid? _editingId;
+    private string _originalFingerprint = string.Empty;
+
     public IReadOnlyList<GuidanceRow> Records { get; private set; } = [];
 
     public IReadOnlyList<string> ReviewWarnings { get; private set; } = [];
+
+    public bool HasRecords => Records.Count > 0;
+
+    public string EditorTitle => _editingId is null ? "Add guidance figure" : "Edit guidance figure";
+
+    public string EditorSaveLabel => "Save guidance";
+
+    public string? EditorEffectPreview =>
+        "A figure with no source is not guidance. Outdated records stay visible and are labelled for review.";
+
+    public bool HasEditorChanges => IsEditorOpen && GuidanceFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveRecordCommand;
+
+    public ICommand CancelEditorCommand => CancelGuidanceEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this guidance figure?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        _editingId = null;
+        ErrorMessage = null;
+    }
+
+    private string GuidanceFingerprint() =>
+        $"{Category}|{RecordState}|{RecordCounty}|{RecordCity}|{Adults}|{Children}|{Low}|{Typical}|{Comfortable}|{SourceName}|{SourceType}|{Confidence}|{ObservedOn}|{EffectiveDate}|{ReviewByDate}|{Notes}|{UserSelected}";
+
+    [RelayCommand]
+    private void CancelGuidanceEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void SelectRecord(GuidanceRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = row.Id;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAdd()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingId = null;
+        SelectedRecord = null;
+        Category = string.Empty;
+        RecordState = HouseholdState;
+        RecordCounty = HouseholdCounty;
+        RecordCity = HouseholdCity;
+        Adults = _session.IsOpen
+            ? _session.Document.Composition.Adults.ToString()
+            : "2";
+        Children = _session.IsOpen
+            ? _session.Document.Composition.Children.ToString()
+            : "0";
+        Low = string.Empty;
+        Typical = string.Empty;
+        Comfortable = string.Empty;
+        SourceName = string.Empty;
+        SourceType = CostGuidanceSourceType.LocallyObservedPrice;
+        Confidence = GuidanceConfidence.Medium;
+        ObservedOn = null;
+        EffectiveDate = null;
+        ReviewByDate = null;
+        Notes = string.Empty;
+        UserSelected = string.Empty;
+        _originalFingerprint = GuidanceFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEdit(GuidanceRow? row)
+    {
+        if (row is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var record = _session.Document.CostGuidance.FirstOrDefault(item => item.Id == row.Id);
+        if (record is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = record.Id;
+        _editingId = record.Id;
+        ApplyRecord(record);
+        _originalFingerprint = GuidanceFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        RematchSelection();
+    }
 
     [RelayCommand]
     private async Task SaveLocalityAsync(CancellationToken cancellationToken)
@@ -220,7 +357,7 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
 
         var record = new CostGuidanceRecord
         {
-            Id = SelectedRecord?.Id ?? Guid.NewGuid(),
+            Id = _editingId ?? SelectedRecord?.Id ?? Guid.NewGuid(),
             Locality = new CostLocality
             {
                 Country = "United States",
@@ -246,6 +383,7 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
                 : null
         };
 
+        SelectedRecordId = record.Id;
         var document = _session.Document;
 
         var records = document.CostGuidance
@@ -260,11 +398,15 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
         }
 
         ErrorMessage = null;
-        SelectedRecord = null;
 
         StatusMessage = await _session.SaveAsync(cancellationToken)
             ? $"{record.Category} guidance saved from {record.SourceName}."
             : _session.LastError ?? "The guidance could not be saved.";
+
+        if (StatusMessage?.StartsWith(record.Category, StringComparison.Ordinal) == true)
+        {
+            DismissEditor();
+        }
     }
 
     [RelayCommand]
@@ -381,20 +523,8 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
             : _session.LastError ?? "The starter pack could not be imported.";
     }
 
-    partial void OnSelectedRecordChanged(GuidanceRow? value)
+    private void ApplyRecord(CostGuidanceRecord record)
     {
-        if (value is null || !_session.IsOpen)
-        {
-            return;
-        }
-
-        var record = _session.Document.CostGuidance.FirstOrDefault(item => item.Id == value.Id);
-
-        if (record is null)
-        {
-            return;
-        }
-
         Category = record.Category;
         RecordState = record.Locality.State ?? string.Empty;
         RecordCounty = record.Locality.County ?? string.Empty;
@@ -447,8 +577,10 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
             EffectiveDate = null;
             ReviewByDate = null;
             SelectedRecord = null;
+            SelectedRecordId = null;
             StatusMessage = null;
             ErrorMessage = null;
+            DismissEditor();
             Notify();
             return;
         }
@@ -490,8 +622,11 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
                 record.DifferenceFromGuidance is { } difference
                     ? difference.ToDisplayString()
                     : "—",
-                record.Notes ?? string.Empty))
+                record.Notes ?? string.Empty,
+                record.Id == SelectedRecordId))
             .ToList();
+
+        SelectedRecord = Records.FirstOrDefault(item => item.Id == SelectedRecordId);
 
         PackSummary =
             $"Bundled pack {StarterGuidancePack.Version}, effective {StarterGuidancePack.EffectiveDate:yyyy-MM-dd}, " +
@@ -519,9 +654,20 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel
         Notify();
     }
 
+    private void RematchSelection()
+    {
+        Records = Records
+            .Select(item => item with { IsSelected = item.Id == SelectedRecordId })
+            .ToList();
+        SelectedRecord = Records.FirstOrDefault(item => item.Id == SelectedRecordId);
+        OnPropertyChanged(nameof(Records));
+        OnPropertyChanged(nameof(HasRecords));
+    }
+
     private void Notify()
     {
         OnPropertyChanged(nameof(Records));
         OnPropertyChanged(nameof(ReviewWarnings));
+        OnPropertyChanged(nameof(HasRecords));
     }
 }
