@@ -31,7 +31,8 @@ public sealed record ReservationRow(
     string Tier,
     string Consequence,
     string Explanation,
-    bool IsUnassigned);
+    bool IsUnassigned,
+    bool IsSelected = false);
 
 public sealed record SplitRow(
     string Name,
@@ -48,7 +49,14 @@ public sealed record TransferRow(
     string Amount,
     string Date,
     string Purpose,
-    string Recurrence);
+    string Recurrence,
+    bool IsSelected = false);
+
+public sealed record PayerChoice(
+    string Key,
+    string Name,
+    BillAssignment Assignment,
+    Guid? MemberId);
 
 /// <summary>
 /// Where the household sets aside money against named obligations, sees how shared costs are
@@ -59,6 +67,9 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
     private readonly TimeProvider _clock;
+    private Guid? _editingTransferId;
+    private string _originalFingerprint = string.Empty;
+    private int _saveDepth;
 
     public AllocationsViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
@@ -75,6 +86,13 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
     }
 
     public IReadOnlyList<ChoiceOption<Frequency>> TransferFrequencies { get; } = FrequencyChoices.Recurring;
+
+    public IReadOnlyList<ChoiceOption<BillAssignment>> SharedSplitOptions { get; } =
+    [
+        new(BillAssignment.PercentageSplit, "Percentage split"),
+        new(BillAssignment.FixedDollarSplit, "Fixed dollar split"),
+        new(BillAssignment.EnteredContributions, "Separate entered contributions")
+    ];
 
     [ObservableProperty]
     private ReservationRow? selectedReservation;
@@ -126,7 +144,15 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsBillEditor))]
     private bool isEditorOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsBillEditor))]
+    private bool isTransferEditor;
 
     [ObservableProperty]
     private string paymentAmount = string.Empty;
@@ -146,34 +172,59 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
     [ObservableProperty]
     private string assignmentPreview = string.Empty;
 
-    public IReadOnlyList<ChoiceOption<BillAssignment>> AssignmentOptions { get; } =
-    [
-        new(BillAssignment.Unassigned, "Unassigned"),
-        new(BillAssignment.MemberPaysAll, "One person pays all"),
-        new(BillAssignment.PercentageSplit, "Shared household — percentage split"),
-        new(BillAssignment.FixedDollarSplit, "Shared household — fixed dollar split"),
-        new(BillAssignment.EnteredContributions, "Shared household — separate contributions"),
-        new(BillAssignment.SharedAccount, "Shared account pays")
-    ];
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSharedHousehold))]
+    private string selectedPayerKey = "unassigned";
+
+    [ObservableProperty]
+    private BillAssignment sharedSplitMethod = BillAssignment.PercentageSplit;
+
+    [ObservableProperty]
+    private string transferPreview = string.Empty;
+
+    [ObservableProperty]
+    private double listScrollOffset;
+
+    [ObservableProperty]
+    private Guid? selectedRecordId;
+
+    public IReadOnlyList<PayerChoice> PayerChoices { get; private set; } =
+        [new("unassigned", "Unassigned", BillAssignment.Unassigned, null)];
 
     public bool HasReservations => Reservations.Count > 0;
 
-    public string EditorTitle => SelectedReservation?.Name ?? "Bill";
+    public bool HasTransfers => Transfers.Count > 0;
 
-    public string EditorSaveLabel => "Save assignment";
+    public bool IsBillEditor => IsEditorOpen && !IsTransferEditor;
+
+    public bool IsSharedHousehold => SelectedPayerKey == "shared";
+
+    public string FirstAdultShareLabel =>
+        Adults.Count > 0 ? $"{Adults[0].Name}'s share" : "First adult share";
+
+    public string SecondAdultShareLabel =>
+        Adults.Count > 1 ? $"{Adults[1].Name}'s share" : "Second adult share";
+
+    public string EditorTitle => IsTransferEditor
+        ? _editingTransferId is null ? "Add transfer" : "Edit transfer"
+        : SelectedReservation?.Name ?? "Bill";
+
+    public string EditorSaveLabel => IsTransferEditor ? "Save transfer" : "Save assignment";
 
     public string? EditorEffectPreview =>
-        string.IsNullOrWhiteSpace(AssignmentPreview) ? null : AssignmentPreview;
+        IsTransferEditor
+            ? string.IsNullOrWhiteSpace(TransferPreview) ? null : TransferPreview
+            : string.IsNullOrWhiteSpace(AssignmentPreview) ? null : AssignmentPreview;
 
-    public bool HasEditorChanges => IsEditorOpen;
+    public bool HasEditorChanges => IsEditorOpen && Fingerprint() != _originalFingerprint;
 
     public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
 
     public string? EditorError => ErrorMessage;
 
-    public ICommand SaveEditorCommand => SaveAssignmentCommand;
+    public ICommand SaveEditorCommand => IsTransferEditor ? AddTransferCommand : SaveAssignmentCommand;
 
-    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
+    public ICommand CancelEditorCommand => CancelEditorAliasCommand;
 
     public bool TryLeaveEditor()
     {
@@ -183,7 +234,7 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         }
 
         if (!HasEditorChanges
-            || _dialog.Confirm("Close this bill", "Close without saving a new assignment?"))
+            || _dialog.Confirm("Unsaved changes", "Close without saving this bill or transfer?"))
         {
             DismissEditor();
             return true;
@@ -195,8 +246,12 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
     public void DismissEditor()
     {
         IsEditorOpen = false;
+        IsTransferEditor = false;
+        _editingTransferId = null;
         PaymentAmount = string.Empty;
         AssignmentPreview = string.Empty;
+        TransferPreview = string.Empty;
+        ErrorMessage = null;
     }
 
     public IReadOnlyList<ReservationRow> Reservations { get; private set; } = [];
@@ -207,7 +262,17 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
 
     public IReadOnlyList<HouseholdMember> Members { get; private set; } = [];
 
+    public IReadOnlyList<HouseholdMember> Adults { get; private set; } = [];
+
     public IReadOnlyList<string> SplitWarnings { get; private set; } = [];
+
+    private string Fingerprint() =>
+        IsTransferEditor
+            ? $"{TransferFrom?.Id}|{TransferTo?.Id}|{TransferAmount}|{TransferDate}|{TransferPurpose}|{TransferIsRecurring}|{TransferFrequency}"
+            : $"{SelectedReservation?.ObligationId}|{EditorAssignment}|{EditorPayer?.Id}|{EditorFirstShare}|{EditorSecondShare}|{SelectedPayerKey}|{SharedSplitMethod}";
+
+    [RelayCommand]
+    private void CancelEditorAlias() => DismissEditor();
 
     [RelayCommand]
     private void SelectBill(ReservationRow? row)
@@ -217,25 +282,100 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             return;
         }
 
-        SelectedReservation = row;
+        SelectedRecordId = row.ObligationId;
+        SelectedReservation = Reservations.FirstOrDefault(item => item.ObligationId == row.ObligationId);
+        RematchSelection();
         OnPropertyChanged(nameof(EditorTitle));
     }
 
     [RelayCommand]
-    private void OpenBill(ReservationRow? row)
+    private void SelectTransfer(TransferRow? row)
     {
         if (row is null)
         {
             return;
         }
 
-        SelectedReservation = row;
-        LoadAssignment(row);
+        SelectedRecordId = row.Id;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void OpenBill(ReservationRow? row)
+    {
+        if (row is null || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        SelectedRecordId = row.ObligationId;
+        SelectedReservation = Reservations.FirstOrDefault(item => item.ObligationId == row.ObligationId) ?? row;
+        IsTransferEditor = false;
+        LoadAssignment(SelectedReservation);
         AssignmentPreview = string.Empty;
         ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
         IsEditorOpen = true;
         OnPropertyChanged(nameof(EditorTitle));
         OnPropertyChanged(nameof(EditorEffectPreview));
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAddTransfer()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingTransferId = null;
+        IsTransferEditor = true;
+        TransferFrom = null;
+        TransferTo = null;
+        TransferAmount = string.Empty;
+        TransferDate = null;
+        TransferPurpose = string.Empty;
+        TransferIsRecurring = false;
+        TransferFrequency = Frequency.Weekly;
+        TransferPreview = string.Empty;
+        ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        OnPropertyChanged(nameof(EditorEffectPreview));
+    }
+
+    [RelayCommand]
+    private void BeginEditTransfer(TransferRow? row)
+    {
+        if (row is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var transfer = _session.Document.Transfers.FirstOrDefault(item => item.Id == row.Id);
+        if (transfer is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = transfer.Id;
+        _editingTransferId = transfer.Id;
+        IsTransferEditor = true;
+        TransferFrom = Members.FirstOrDefault(member => member.Id == transfer.FromMemberId);
+        TransferTo = Members.FirstOrDefault(member => member.Id == transfer.ToMemberId);
+        TransferAmount = AmountParsing.Format(transfer.Amount);
+        TransferDate = transfer.Date.ToDateTime(TimeOnly.MinValue);
+        TransferPurpose = transfer.Purpose ?? string.Empty;
+        TransferIsRecurring = transfer.IsRecurring;
+        TransferFrequency = transfer.IsRecurring ? transfer.RecurringFrequency : Frequency.Weekly;
+        PreviewTransfer();
+        ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        RematchSelection();
     }
 
     private void LoadAssignment(ReservationRow row)
@@ -244,6 +384,7 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         {
             EditorAssignment = BillAssignment.Unassigned;
             EditorPayer = null;
+            SelectedPayerKey = "unassigned";
             return;
         }
 
@@ -251,6 +392,7 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         if (expense is null)
         {
             EditorAssignment = row.IsUnassigned ? BillAssignment.Unassigned : EditorAssignment;
+            SelectedPayerKey = "unassigned";
             return;
         }
 
@@ -275,104 +417,173 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             EditorFirstShare = "50";
             EditorSecondShare = "50";
         }
+
+        if (expense.Assignment is BillAssignment.PercentageSplit
+            or BillAssignment.FixedDollarSplit
+            or BillAssignment.EnteredContributions)
+        {
+            SharedSplitMethod = expense.Assignment;
+        }
+
+        SelectedPayerKey = expense.Assignment switch
+        {
+            BillAssignment.MemberPaysAll when EditorPayer is { } payer => $"member:{payer.Id}",
+            BillAssignment.PercentageSplit or BillAssignment.FixedDollarSplit
+                or BillAssignment.EnteredContributions => "shared",
+            BillAssignment.SharedAccount => "account",
+            _ => "unassigned"
+        };
     }
 
-    [RelayCommand]
-    private void CancelEditor() => DismissEditor();
+    partial void OnSelectedPayerKeyChanged(string value)
+    {
+        var choice = PayerChoices.FirstOrDefault(item => item.Key == value);
+        if (choice is null)
+        {
+            return;
+        }
+
+        if (choice.Assignment == BillAssignment.MemberPaysAll)
+        {
+            EditorAssignment = BillAssignment.MemberPaysAll;
+            EditorPayer = Members.FirstOrDefault(member => member.Id == choice.MemberId);
+            return;
+        }
+
+        if (choice.Key == "shared")
+        {
+            EditorAssignment = SharedSplitMethod;
+            return;
+        }
+
+        EditorAssignment = choice.Assignment;
+    }
+
+    partial void OnSharedSplitMethodChanged(BillAssignment value)
+    {
+        if (SelectedPayerKey == "shared")
+        {
+            EditorAssignment = value;
+        }
+    }
 
     [RelayCommand]
     private async Task RecordPaymentAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen || SelectedReservation is not { } selected)
+        if (!TryBeginSave())
         {
-            ErrorMessage = "Open a bill first.";
             return;
         }
 
-        if (!AmountParsing.TryParseMoney(PaymentAmount, out var amount) || amount.IsZero || amount.IsNegative)
+        try
         {
-            ErrorMessage = "Enter the amount that was paid.";
-            return;
+            if (!_session.IsOpen || SelectedReservation is not { } selected)
+            {
+                ErrorMessage = "Open a bill first.";
+                return;
+            }
+
+            if (!AmountParsing.TryParseMoney(PaymentAmount, out var amount) || amount.IsZero || amount.IsNegative)
+            {
+                ErrorMessage = "Enter the amount that was paid.";
+                return;
+            }
+
+            var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+            var document = _session.Document;
+            var expense = document.Expenses.FirstOrDefault(item => item.Id == selected.ObligationId);
+            var transactions = document.Transactions.ToList();
+            transactions.Add(new ExpenseTransaction
+            {
+                Id = Guid.NewGuid(),
+                ExpenseItemId = selected.Kind == ObligationKind.Expense ? selected.ObligationId : null,
+                Date = today,
+                Description = $"{selected.Name} payment",
+                Amount = amount,
+                Category = expense?.Category ?? ExpenseCategory.Other,
+                IsConfirmed = true,
+                Notes = "Recorded from Bills & Reservations."
+            });
+
+            if (!_session.TryReplace(document with { Transactions = transactions }, out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            ErrorMessage = null;
+            PaymentAmount = string.Empty;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? $"{amount.ToDisplayString()} recorded as paid on {selected.Name}."
+                : _session.LastError ?? "The payment could not be saved.";
         }
-
-        var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
-        var document = _session.Document;
-        var expense = document.Expenses.FirstOrDefault(item => item.Id == selected.ObligationId);
-        var transactions = document.Transactions.ToList();
-        transactions.Add(new ExpenseTransaction
+        finally
         {
-            Id = Guid.NewGuid(),
-            ExpenseItemId = selected.Kind == ObligationKind.Expense ? selected.ObligationId : null,
-            Date = today,
-            Description = $"{selected.Name} payment",
-            Amount = amount,
-            Category = expense?.Category ?? ExpenseCategory.Other,
-            IsConfirmed = true,
-            Notes = "Recorded from Bills & Reservations."
-        });
-
-        if (!_session.TryReplace(document with { Transactions = transactions }, out var error))
-        {
-            ErrorMessage = error;
-            return;
+            EndSave();
         }
-
-        ErrorMessage = null;
-        PaymentAmount = string.Empty;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{amount.ToDisplayString()} recorded as paid on {selected.Name}."
-            : _session.LastError ?? "The payment could not be saved.";
     }
 
     [RelayCommand]
     private async Task SaveReserveAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen)
+        if (!TryBeginSave())
         {
-            ErrorMessage = "Open the household database first.";
             return;
         }
 
-        if (SelectedReservation is not { } selected)
+        try
         {
-            ErrorMessage = "Choose the obligation the money is set aside for.";
-            return;
+            if (!_session.IsOpen)
+            {
+                ErrorMessage = "Open the household database first.";
+                return;
+            }
+
+            if (SelectedReservation is not { } selected)
+            {
+                ErrorMessage = "Choose the obligation the money is set aside for.";
+                return;
+            }
+
+            if (!AmountParsing.TryParseMoney(ReserveAmount, out var amount) || amount.IsNegative)
+            {
+                ErrorMessage = "Enter the amount already set aside.";
+                return;
+            }
+
+            var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+            var document = _session.Document;
+
+            var reserves = document.Reserves
+                .Where(reserve => reserve.ObligationId != selected.ObligationId)
+                .ToList();
+
+            reserves.Add(new ObligationReserve
+            {
+                Id = Guid.NewGuid(),
+                ObligationId = selected.ObligationId,
+                Kind = selected.Kind,
+                Reserved = amount,
+                UpdatedOn = today,
+                IsProtected = ReserveIsProtected
+            });
+
+            if (!_session.TryReplace(document with { Reserves = reserves }, out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            ErrorMessage = null;
+            ReserveAmount = string.Empty;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? $"{amount.ToDisplayString()} recorded against {selected.Name}."
+                : _session.LastError ?? "The reserve could not be saved.";
         }
-
-        if (!AmountParsing.TryParseMoney(ReserveAmount, out var amount) || amount.IsNegative)
+        finally
         {
-            ErrorMessage = "Enter the amount already set aside.";
-            return;
+            EndSave();
         }
-
-        var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
-        var document = _session.Document;
-
-        var reserves = document.Reserves
-            .Where(reserve => reserve.ObligationId != selected.ObligationId)
-            .ToList();
-
-        reserves.Add(new ObligationReserve
-        {
-            Id = Guid.NewGuid(),
-            ObligationId = selected.ObligationId,
-            Kind = selected.Kind,
-            Reserved = amount,
-            UpdatedOn = today,
-            IsProtected = ReserveIsProtected
-        });
-
-        if (!_session.TryReplace(document with { Reserves = reserves }, out var error))
-        {
-            ErrorMessage = error;
-            return;
-        }
-
-        ErrorMessage = null;
-        ReserveAmount = string.Empty;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{amount.ToDisplayString()} recorded against {selected.Name}."
-            : _session.LastError ?? "The reserve could not be saved.";
     }
 
     [RelayCommand]
@@ -381,12 +592,14 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         if (!_session.IsOpen || SelectedReservation is null)
         {
             AssignmentPreview = "Select a bill first.";
+            OnPropertyChanged(nameof(EditorEffectPreview));
             return;
         }
 
         if (!TryBuildAssignment(out var assignment, out var split, out var error))
         {
             AssignmentPreview = error;
+            OnPropertyChanged(nameof(EditorEffectPreview));
             return;
         }
 
@@ -408,59 +621,116 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             $"Unassigned household total {preview.UnassignedBefore.ToDisplayString()} → {preview.UnassignedAfter.ToDisplayString()}." +
             Environment.NewLine +
             preview.Risk;
+        OnPropertyChanged(nameof(EditorEffectPreview));
+    }
+
+    [RelayCommand]
+    private void PreviewTransfer()
+    {
+        if (TransferFrom is not { } from || TransferTo is not { } to)
+        {
+            TransferPreview = "Choose two different people to see the effect on both personal balances.";
+            OnPropertyChanged(nameof(EditorEffectPreview));
+            return;
+        }
+
+        if (from.Id == to.Id)
+        {
+            TransferPreview = "A transfer needs two different people.";
+            OnPropertyChanged(nameof(EditorEffectPreview));
+            return;
+        }
+
+        if (!AmountParsing.TryParseMoney(TransferAmount, out var amount) || amount.IsZero || amount.IsNegative)
+        {
+            TransferPreview =
+                $"A confirmed transfer moves money only between {from.Name} and {to.Name}. " +
+                "Household available money is not changed automatically.";
+            OnPropertyChanged(nameof(EditorEffectPreview));
+            return;
+        }
+
+        var buckets = BillAssignmentPlanner.AccountBalances(_session.IsOpen ? _session.Document : new());
+        var fromBefore = buckets.Personal.TryGetValue(from.Id, out var fromBalance) ? fromBalance : Money.Zero;
+        var toBefore = buckets.Personal.TryGetValue(to.Id, out var toBalance) ? toBalance : Money.Zero;
+        TransferPreview =
+            $"Move {amount.ToDisplayString()} from {from.Name} to {to.Name}. " +
+            $"{from.Name}: {fromBefore.ToDisplayString()} → {(fromBefore - amount).Round().ToDisplayString()}. " +
+            $"{to.Name}: {toBefore.ToDisplayString()} → {(toBefore + amount).Round().ToDisplayString()}. " +
+            "This changes only those two personal balances after you confirm.";
+        OnPropertyChanged(nameof(EditorEffectPreview));
     }
 
     [RelayCommand]
     private async Task SaveAssignmentAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen || SelectedReservation is null)
-        {
-            ErrorMessage = "Select a bill first.";
-            return;
-        }
-
-        if (!TryBuildAssignment(out var assignment, out var split, out var error))
-        {
-            ErrorMessage = error;
-            return;
-        }
-
-        PreviewAssignment();
-        if (!_dialog.Confirm(
-                "Save bill assignment",
-                (string.IsNullOrWhiteSpace(AssignmentPreview)
-                    ? "Save this assignment?"
-                    : AssignmentPreview) +
-                Environment.NewLine +
-                "Unassigned bills are not deducted from either person."))
+        if (!TryBeginSave())
         {
             return;
         }
 
-        var document = _session.Document;
-        var expenses = document.Expenses.Select(expense =>
-            expense.Id == SelectedReservation.ObligationId
-                ? BillAssignmentPlanner.Apply(expense, assignment, split)
-                : expense).ToList();
-
-        if (!_session.TryReplace(document with { Expenses = expenses }, out var replaceError))
+        try
         {
-            ErrorMessage = replaceError;
-            return;
-        }
+            if (!_session.IsOpen || SelectedReservation is null)
+            {
+                ErrorMessage = "Select a bill first.";
+                return;
+            }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{SelectedReservation.Name} assignment saved."
-            : _session.LastError ?? "The assignment could not be saved.";
+            if (!TryBuildAssignment(out var assignment, out var split, out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            PreviewAssignment();
+            if (!_dialog.Confirm(
+                    "Save bill assignment",
+                    (string.IsNullOrWhiteSpace(AssignmentPreview)
+                        ? "Save this assignment?"
+                        : AssignmentPreview) +
+                    Environment.NewLine +
+                    "Unassigned bills are not deducted from either person."))
+            {
+                return;
+            }
+
+            var document = _session.Document;
+            var expenses = document.Expenses.Select(expense =>
+                expense.Id == SelectedReservation.ObligationId
+                    ? BillAssignmentPlanner.Apply(expense, assignment, split)
+                    : expense).ToList();
+
+            if (!_session.TryReplace(document with { Expenses = expenses }, out var replaceError))
+            {
+                ErrorMessage = replaceError;
+                return;
+            }
+
+            ErrorMessage = null;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? $"{SelectedReservation.Name} assignment saved."
+                : _session.LastError ?? "The assignment could not be saved.";
+
+            if (StatusMessage?.EndsWith("assignment saved.", StringComparison.Ordinal) == true)
+            {
+                DismissEditor();
+            }
+        }
+        finally
+        {
+            EndSave();
+        }
     }
 
-    private bool TryBuildAssignment(out BillAssignment assignment, out SplitRule? split, out string error)
+    public bool TryBuildAssignment(out BillAssignment assignment, out SplitRule? split, out string error)
     {
         assignment = EditorAssignment;
         split = null;
         error = string.Empty;
-        var adults = Members.Where(member => !member.IsDependant).ToList();
+        var adults = Adults.Count > 0
+            ? Adults
+            : Members.Where(member => !member.IsDependant && !member.IsArchived).ToList();
 
         switch (assignment)
         {
@@ -487,22 +757,25 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                     return false;
                 }
 
+                if (firstPercent < 0m || secondPercent < 0m)
+                {
+                    error = "Percentages cannot be negative.";
+                    return false;
+                }
+
+                if (Math.Abs(firstPercent + secondPercent - 100m) > 0.001m)
+                {
+                    error = "Percentage splits must total exactly 100%.";
+                    return false;
+                }
+
                 split = new SplitRule
                 {
                     Method = SplitMethod.Percentage,
                     Participants = [adults[0].Id, adults[1].Id],
                     Percentages = [firstPercent, secondPercent]
                 };
-                try
-                {
-                    split.Validate();
-                    return true;
-                }
-                catch (ArgumentException exception)
-                {
-                    error = exception.Message;
-                    return false;
-                }
+                return ValidateSplit(split, out error);
 
             case BillAssignment.FixedDollarSplit:
             case BillAssignment.EnteredContributions:
@@ -514,22 +787,32 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                     return false;
                 }
 
+                if (firstAmount.IsNegative || secondAmount.IsNegative)
+                {
+                    error = "Contributions cannot be negative.";
+                    return false;
+                }
+
+                if (SelectedReservation is { } selected
+                    && _session.IsOpen
+                    && _session.Document.Expenses.FirstOrDefault(item => item.Id == selected.ObligationId) is { } bill)
+                {
+                    var total = (firstAmount + secondAmount).Round();
+                    if (total != bill.ExpectedAmount.Round())
+                    {
+                        error =
+                            $"Dollar contributions must equal the assigned bill amount of {bill.ExpectedAmount.ToDisplayString()}.";
+                        return false;
+                    }
+                }
+
                 split = new SplitRule
                 {
                     Method = SplitMethod.FixedAmount,
                     Participants = [adults[0].Id, adults[1].Id],
                     FixedAmounts = [firstAmount, secondAmount]
                 };
-                try
-                {
-                    split.Validate();
-                    return true;
-                }
-                catch (ArgumentException exception)
-                {
-                    error = exception.Message;
-                    return false;
-                }
+                return ValidateSplit(split, out error);
 
             default:
                 error = "Choose an assignment.";
@@ -537,72 +820,108 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         }
     }
 
+    private static bool ValidateSplit(SplitRule split, out string error)
+    {
+        try
+        {
+            split.Validate();
+            error = string.Empty;
+            return true;
+        }
+        catch (ArgumentException exception)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
     [RelayCommand]
     private async Task AddTransferAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen)
-        {
-            ErrorMessage = "Open the household database first.";
-            return;
-        }
-
-        if (TransferFrom is not { } from || TransferTo is not { } to)
-        {
-            ErrorMessage = "Choose who is sending and who is receiving.";
-            return;
-        }
-
-        if (from.Id == to.Id)
-        {
-            ErrorMessage = "A transfer needs two different people.";
-            return;
-        }
-
-        if (!AmountParsing.TryParseMoney(TransferAmount, out var amount) || amount.IsZero || amount.IsNegative)
-        {
-            ErrorMessage = "Enter the amount being transferred.";
-            return;
-        }
-
-        var date = TransferDate is { } chosen
-            ? DateOnly.FromDateTime(chosen)
-            : DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
-
-        if (!_dialog.Confirm(
-                "Record transfer",
-                $"Move {amount.ToDisplayString()} from {from.Name}'s personal balance to {to.Name}'s?"))
+        if (!TryBeginSave())
         {
             return;
         }
 
-        var document = _session.Document;
-        var transfers = document.Transfers.ToList();
-
-        transfers.Add(new PersonalTransfer
+        try
         {
-            Id = Guid.NewGuid(),
-            FromMemberId = from.Id,
-            ToMemberId = to.Id,
-            Amount = amount,
-            Date = date,
-            Purpose = string.IsNullOrWhiteSpace(TransferPurpose) ? null : TransferPurpose.Trim(),
-            IsRecurring = TransferIsRecurring,
-            RecurringFrequency = TransferIsRecurring ? TransferFrequency : Frequency.OneOff
-        });
+            if (!_session.IsOpen)
+            {
+                ErrorMessage = "Open the household database first.";
+                return;
+            }
 
-        if (!_session.TryReplace(document with { Transfers = transfers }, out var error))
-        {
-            ErrorMessage = error;
-            return;
+            if (TransferFrom is not { } from || TransferTo is not { } to)
+            {
+                ErrorMessage = "Choose who is sending and who is receiving.";
+                return;
+            }
+
+            if (from.Id == to.Id)
+            {
+                ErrorMessage = "A transfer needs two different people.";
+                return;
+            }
+
+            if (!AmountParsing.TryParseMoney(TransferAmount, out var amount) || amount.IsZero || amount.IsNegative)
+            {
+                ErrorMessage = "Enter the amount being transferred.";
+                return;
+            }
+
+            var date = TransferDate is { } chosen
+                ? DateOnly.FromDateTime(chosen)
+                : DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+
+            PreviewTransfer();
+            if (!_dialog.Confirm(
+                    "Record transfer",
+                    (string.IsNullOrWhiteSpace(TransferPreview)
+                        ? $"Move {amount.ToDisplayString()} from {from.Name}'s personal balance to {to.Name}'s?"
+                        : TransferPreview)))
+            {
+                return;
+            }
+
+            var document = _session.Document;
+            var transfer = new PersonalTransfer
+            {
+                Id = _editingTransferId ?? Guid.NewGuid(),
+                FromMemberId = from.Id,
+                ToMemberId = to.Id,
+                Amount = amount,
+                Date = date,
+                Purpose = string.IsNullOrWhiteSpace(TransferPurpose) ? null : TransferPurpose.Trim(),
+                IsRecurring = TransferIsRecurring,
+                RecurringFrequency = TransferIsRecurring ? TransferFrequency : Frequency.OneOff
+            };
+
+            SelectedRecordId = transfer.Id;
+            var transfers = document.Transfers
+                .Where(item => item.Id != transfer.Id)
+                .Append(transfer)
+                .ToList();
+
+            if (!_session.TryReplace(document with { Transfers = transfers }, out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            ErrorMessage = null;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? $"{amount.ToDisplayString()} recorded from {from.Name} to {to.Name}."
+                : _session.LastError ?? "The transfer could not be saved.";
+
+            if (StatusMessage?.Contains("recorded from", StringComparison.Ordinal) == true)
+            {
+                DismissEditor();
+            }
         }
-
-        ErrorMessage = null;
-        TransferAmount = string.Empty;
-        TransferPurpose = string.Empty;
-
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{amount.ToDisplayString()} recorded from {from.Name} to {to.Name}."
-            : _session.LastError ?? "The transfer could not be saved.";
+        finally
+        {
+            EndSave();
+        }
     }
 
     [RelayCommand]
@@ -633,6 +952,38 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             : _session.LastError ?? "The transfer could not be removed.";
     }
 
+    private bool TryBeginSave()
+    {
+        if (System.Threading.Interlocked.Exchange(ref _saveDepth, 1) != 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void EndSave() => System.Threading.Interlocked.Exchange(ref _saveDepth, 0);
+
+    private void RebuildPayerChoices()
+    {
+        var choices = new List<PayerChoice>
+        {
+            new("unassigned", "Unassigned", BillAssignment.Unassigned, null)
+        };
+
+        foreach (var adult in Adults)
+        {
+            choices.Add(new($"member:{adult.Id}", $"{adult.Name} pays all", BillAssignment.MemberPaysAll, adult.Id));
+        }
+
+        choices.Add(new("shared", "Shared household", BillAssignment.PercentageSplit, null));
+        choices.Add(new("account", "Shared account", BillAssignment.SharedAccount, null));
+        PayerChoices = choices;
+        OnPropertyChanged(nameof(PayerChoices));
+        OnPropertyChanged(nameof(FirstAdultShareLabel));
+        OnPropertyChanged(nameof(SecondAdultShareLabel));
+    }
+
     private void OnSessionChanged(object? sender, EventArgs e) => Refresh();
 
     private void Refresh()
@@ -643,6 +994,7 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             Shares = [];
             Transfers = [];
             Members = [];
+            Adults = [];
             SplitWarnings = [];
             SplitSummary = string.Empty;
             OverrideSummary = string.Empty;
@@ -655,9 +1007,11 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
             TransferTo = null;
             TransferDate = null;
             SelectedReservation = null;
-            IsEditorOpen = false;
+            SelectedRecordId = null;
             StatusMessage = null;
             ErrorMessage = null;
+            DismissEditor();
+            RebuildPayerChoices();
             Notify();
             return;
         }
@@ -667,6 +1021,10 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         var allocation = PaychequeAllocator.Allocate(document, today);
 
         Members = document.Members;
+        Adults = document.Members
+            .Where(member => !member.IsDependant && !member.IsArchived)
+            .ToList();
+        RebuildPayerChoices();
 
         var register = ObligationRegister.Build(document, today);
 
@@ -691,10 +1049,11 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 line.Classification,
                 line.Consequence,
                 line.AttentionText,
-                line.IsUnassigned))
+                line.IsUnassigned,
+                line.Id == SelectedRecordId))
             .ToList();
 
-        var selectedId = SelectedReservation?.ObligationId;
+        var selectedId = SelectedReservation?.ObligationId ?? SelectedRecordId;
         SelectedReservation = selectedId is { } id
             ? Reservations.FirstOrDefault(item => item.ObligationId == id)
             : null;
@@ -702,6 +1061,7 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
         if (!IsEditorOpen)
         {
             AssignmentPreview = string.Empty;
+            TransferPreview = string.Empty;
         }
 
         var chosen = allocation.SharedSplit;
@@ -757,20 +1117,42 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 transfer.Purpose ?? "No note recorded",
                 transfer.IsRecurring
                     ? transfer.RecurringFrequency.ToDisplayName()
-                    : "One-time"))
+                    : "One-time",
+                transfer.Id == SelectedRecordId))
             .ToList();
 
         Notify();
+    }
+
+    private void RematchSelection()
+    {
+        Reservations = Reservations
+            .Select(item => item with { IsSelected = item.ObligationId == SelectedRecordId })
+            .ToList();
+        Transfers = Transfers
+            .Select(item => item with { IsSelected = item.Id == SelectedRecordId })
+            .ToList();
+        SelectedReservation = Reservations.FirstOrDefault(item => item.ObligationId == SelectedRecordId)
+                              ?? SelectedReservation;
+        OnPropertyChanged(nameof(Reservations));
+        OnPropertyChanged(nameof(Transfers));
+        OnPropertyChanged(nameof(HasReservations));
+        OnPropertyChanged(nameof(HasTransfers));
     }
 
     private void Notify()
     {
         OnPropertyChanged(nameof(Reservations));
         OnPropertyChanged(nameof(HasReservations));
+        OnPropertyChanged(nameof(HasTransfers));
         OnPropertyChanged(nameof(Shares));
         OnPropertyChanged(nameof(Transfers));
         OnPropertyChanged(nameof(Members));
+        OnPropertyChanged(nameof(Adults));
         OnPropertyChanged(nameof(SplitWarnings));
         OnPropertyChanged(nameof(EditorTitle));
+        OnPropertyChanged(nameof(IsSharedHousehold));
+        OnPropertyChanged(nameof(FirstAdultShareLabel));
+        OnPropertyChanged(nameof(SecondAdultShareLabel));
     }
 }

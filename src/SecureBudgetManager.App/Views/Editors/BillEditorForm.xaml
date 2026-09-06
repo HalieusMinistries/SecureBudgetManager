@@ -2,74 +2,128 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="This bill"/>
-        <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" FontWeight="SemiBold" Text="{Binding SelectedReservation.Name}"/>
-        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
-            <Run Text="Due "/><Run Text="{Binding SelectedReservation.DueDate, Mode=OneWay}"/>
-            <Run Text=" · required "/><Run Text="{Binding SelectedReservation.AmountDue, Mode=OneWay}"/>
-            <Run Text=" · paid "/><Run Text="{Binding SelectedReservation.AmountPaid, Mode=OneWay}"/>
-            <Run Text=" · reserved "/><Run Text="{Binding SelectedReservation.AlreadyReserved, Mode=OneWay}"/>
-            <Run Text=" · still needed "/><Run Text="{Binding SelectedReservation.StillRequired, Mode=OneWay}"/>
-        </TextBlock>
-        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding SelectedReservation.Status}"/>
-        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding SelectedReservation.Consequence}"/>
+        <StackPanel Visibility="{Binding IsBillEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="This bill"/>
+            <TextBlock Style="{StaticResource CardBody}" TextWrapping="Wrap" FontWeight="SemiBold" Text="{Binding SelectedReservation.Name}"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                <Run Text="Required "/><Run Text="{Binding SelectedReservation.AmountDue, Mode=OneWay}"/>
+                <Run Text=" · due "/><Run Text="{Binding SelectedReservation.DueDate, Mode=OneWay}"/>
+                <Run Text=" · "/><Run Text="{Binding SelectedReservation.Frequency, Mode=OneWay}"/>
+            </TextBlock>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap">
+                <Run Text="Paid "/><Run Text="{Binding SelectedReservation.AmountPaid, Mode=OneWay}"/>
+                <Run Text=" · reserved "/><Run Text="{Binding SelectedReservation.AlreadyReserved, Mode=OneWay}"/>
+                <Run Text=" · still required "/><Run Text="{Binding SelectedReservation.StillRequired, Mode=OneWay}"/>
+            </TextBlock>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding SelectedReservation.Status}"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding SelectedReservation.Consequence}"/>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Who pays"/>
-        <TextBlock Style="{StaticResource HintText}" Text="Unassigned bills stay visible. They are not taken from either person until someone agrees."/>
-        <ComboBox Style="{StaticResource FormComboBox}"
-                  ItemsSource="{Binding AssignmentOptions}"
-                  DisplayMemberPath="Name"
-                  SelectedValuePath="Value"
-                  SelectedValue="{Binding EditorAssignment}"
-                  AutomationProperties.Name="Bill assignment"/>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="If one person pays all"/>
-        <ComboBox Style="{StaticResource FormComboBox}"
-                  ItemsSource="{Binding Members}"
-                  DisplayMemberPath="Name"
-                  SelectedItem="{Binding EditorPayer}"
-                  AutomationProperties.Name="Person who pays all"/>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Shared household — first adult share or amount"/>
-        <TextBox Style="{StaticResource FormTextBox}"
-                 Text="{Binding EditorFirstShare, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="First adult share"/>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Shared household — second adult share or amount"/>
-        <TextBox Style="{StaticResource FormTextBox}"
-                 Text="{Binding EditorSecondShare, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="Second adult share"/>
-        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssignmentPreview}"/>
-        <Button Style="{StaticResource SecondaryButton}"
-                Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Content="Show effect before saving"
-                Command="{Binding PreviewAssignmentCommand}"
-                AutomationProperties.Name="Preview bill assignment"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Who pays"/>
+            <TextBlock Style="{StaticResource HintText}" Text="Unassigned bills stay visible. They are not taken from either person until someone agrees."/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding PayerChoices}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Key"
+                      SelectedValue="{Binding SelectedPayerKey}"
+                      AutomationProperties.Name="Bill assignment"/>
+            <StackPanel Visibility="{Binding IsSharedHousehold, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock Style="{StaticResource FieldLabel}" Text="How the household shares this bill"/>
+                <ComboBox Style="{StaticResource FormComboBox}"
+                          ItemsSource="{Binding SharedSplitOptions}"
+                          DisplayMemberPath="Name"
+                          SelectedValuePath="Value"
+                          SelectedValue="{Binding SharedSplitMethod}"
+                          AutomationProperties.Name="Shared household split method"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding FirstAdultShareLabel}"/>
+                <TextBox Style="{StaticResource FormTextBox}"
+                         Text="{Binding EditorFirstShare, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="First adult share"/>
+                <TextBlock Style="{StaticResource FieldLabel}" Text="{Binding SecondAdultShareLabel}"/>
+                <TextBox Style="{StaticResource FormTextBox}"
+                         Text="{Binding EditorSecondShare, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Second adult share"/>
+            </StackPanel>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssignmentPreview}"/>
+            <Button Style="{StaticResource SecondaryButton}"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Left"
+                    Content="Show effect before saving"
+                    Command="{Binding PreviewAssignmentCommand}"
+                    AutomationProperties.Name="Preview bill assignment"/>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Record a payment"/>
-        <TextBlock Style="{StaticResource HintText}" Text="A payment is money already spent. It is not the same as money reserved in the bank."/>
-        <TextBox Style="{StaticResource FormTextBox}"
-                 Text="{Binding PaymentAmount, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="Payment amount"/>
-        <Button Style="{StaticResource SecondaryButton}"
-                Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Content="Record payment"
-                Command="{Binding RecordPaymentCommand}"
-                AutomationProperties.Name="Record that this bill was paid"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Record a payment"/>
+            <TextBlock Style="{StaticResource HintText}" Text="A payment is money already spent. It is not the same as money reserved in the bank."/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding PaymentAmount, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Payment amount"/>
+            <Button Style="{StaticResource SecondaryButton}"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Left"
+                    Content="Record payment"
+                    Command="{Binding RecordPaymentCommand}"
+                    AutomationProperties.Name="Record that this bill was paid"/>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Reserve money already set aside"/>
-        <TextBlock Style="{StaticResource HintText}" Text="Reserved money stays in the account but is excluded from safe-to-spend."/>
-        <TextBox Style="{StaticResource FormTextBox}"
-                 Text="{Binding ReserveAmount, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="Amount already set aside"/>
-        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
-                  Content="Keep this money out of safe-to-spend"
-                  IsChecked="{Binding ReserveIsProtected}"
-                  AutomationProperties.Name="Keep this reserve out of safe to spend"/>
-        <Button Style="{StaticResource SecondaryButton}"
-                Margin="0,8,0,0"
-                HorizontalAlignment="Left"
-                Content="Save reserve"
-                Command="{Binding SaveReserveCommand}"
-                AutomationProperties.Name="Save the recorded reserve"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Reserve money already set aside"/>
+            <TextBlock Style="{StaticResource HintText}" Text="Reserved money stays in the account but is excluded from safe-to-spend."/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding ReserveAmount, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Amount already set aside"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
+                      Content="Keep this money out of safe-to-spend"
+                      IsChecked="{Binding ReserveIsProtected}"
+                      AutomationProperties.Name="Keep this reserve out of safe to spend"/>
+            <Button Style="{StaticResource SecondaryButton}"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Left"
+                    Content="Save reserve"
+                    Command="{Binding SaveReserveCommand}"
+                    AutomationProperties.Name="Save the recorded reserve"/>
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding IsTransferEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="From"/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding Members}"
+                      DisplayMemberPath="Name"
+                      SelectedItem="{Binding TransferFrom}"
+                      AutomationProperties.Name="Transfer sender"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="To"/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding Members}"
+                      DisplayMemberPath="Name"
+                      SelectedItem="{Binding TransferTo}"
+                      AutomationProperties.Name="Transfer recipient"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Amount"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding TransferAmount, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Transfer amount"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Date"/>
+            <DatePicker Style="{StaticResource FormDatePicker}"
+                        SelectedDate="{Binding TransferDate}"
+                        AutomationProperties.Name="Transfer date"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Purpose or note"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding TransferPurpose, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Transfer purpose"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
+                      Content="This transfer repeats"
+                      IsChecked="{Binding TransferIsRecurring}"
+                      AutomationProperties.Name="This transfer repeats"/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding TransferFrequencies}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding TransferFrequency}"
+                      AutomationProperties.Name="Transfer frequency"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding TransferPreview}"/>
+            <Button Style="{StaticResource SecondaryButton}"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Left"
+                    Content="Show effect on both people"
+                    Command="{Binding PreviewTransferCommand}"
+                    AutomationProperties.Name="Preview transfer effect"/>
+            <TextBlock Style="{StaticResource HintText}"
+                       Text="Saving asks for confirmation. A transfer changes only the two personal balances named here."/>
+        </StackPanel>
     </StackPanel>
 </UserControl>

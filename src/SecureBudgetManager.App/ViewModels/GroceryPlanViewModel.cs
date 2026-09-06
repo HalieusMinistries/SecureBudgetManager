@@ -22,7 +22,10 @@ public sealed record GroceryCategoryRow(
     string Source,
     string EffectiveDate,
     string Confidence,
-    string ReviewState);
+    string ReviewState,
+    bool IsSelected = false);
+
+public sealed record AssistanceCategoryChoice(Guid Id, string Name, bool IsSupplied);
 
 /// <summary>
 /// Groceries by category rather than one figure, because "we spend too much on food" is not
@@ -33,6 +36,8 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     private readonly IBudgetSession _session;
     private readonly IUserDialog _dialog;
     private readonly TimeProvider _clock;
+    private string _originalFingerprint = string.Empty;
+    private int _saveDepth;
 
     public GroceryPlanViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
@@ -62,6 +67,13 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
         new(RolloverRule.CarryForward, "Carry unspent money forward")
     ];
 
+    public IReadOnlyList<ChoiceOption<string>> AssistanceStatuses { get; } =
+    [
+        new("not-expected", "Not expected"),
+        new("expected", "Expected — not assumed permanent"),
+        new("suspended", "Temporarily suspended")
+    ];
+
     [ObservableProperty]
     private GroceryPlanKind selectedKind = GroceryPlanKind.Current;
 
@@ -75,59 +87,35 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     private string fallbackSummary = string.Empty;
 
     [ObservableProperty]
+    private string emergencySummary = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsCategoryEditor))]
     private bool isEditorOpen;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
+    [NotifyPropertyChangedFor(nameof(IsCategoryEditor))]
+    private bool isAssistanceEditor;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(EditorTitle))]
     private GroceryCategoryRow? selectedCategory;
 
-    public string EditorTitle => SelectedCategory is { } category
-        ? category.Name
-        : "Grocery category";
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSelected))]
+    private bool isAssistanceSelected;
 
-    public string EditorSaveLabel => "Save category";
+    public bool IsSelected => IsAssistanceSelected;
 
-    public string? EditorEffectPreview =>
-        "A weekly grocery limit is the most you intend to spend in this part of the shop.";
+    [ObservableProperty]
+    private double listScrollOffset;
 
-    public bool HasEditorChanges => IsEditorOpen;
-
-    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
-
-    public string? EditorError => ErrorMessage;
-
-    public ICommand SaveEditorCommand => SaveCategoryCommand;
-
-    ICommand IEditablePage.CancelEditorCommand => CancelEditorCommand;
-
-    public bool TryLeaveEditor()
-    {
-        if (!IsEditorOpen)
-        {
-            return true;
-        }
-
-        DismissEditor();
-        return true;
-    }
-
-    public void DismissEditor() => IsEditorOpen = false;
-
-    [RelayCommand]
-    private void OpenCategory(GroceryCategoryRow? row)
-    {
-        if (row is null)
-        {
-            return;
-        }
-
-        SelectedCategory = row;
-        IsEditorOpen = true;
-        OnPropertyChanged(nameof(EditorTitle));
-    }
-
-    [RelayCommand]
-    private void CancelEditor() => DismissEditor();
+    [ObservableProperty]
+    private Guid? selectedRecordId;
 
     [ObservableProperty]
     private string categoryLimit = string.Empty;
@@ -151,6 +139,9 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     private bool assistanceSuspended;
 
     [ObservableProperty]
+    private string selectedAssistanceStatus = "not-expected";
+
+    [ObservableProperty]
     private string assistanceSource = string.Empty;
 
     [ObservableProperty]
@@ -163,6 +154,12 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     private DateTime? assistanceReview;
 
     [ObservableProperty]
+    private string assistanceNotes = string.Empty;
+
+    [ObservableProperty]
+    private string cashStillRequired = string.Empty;
+
+    [ObservableProperty]
     private string? statusMessage;
 
     [ObservableProperty]
@@ -170,11 +167,288 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
 
     public IReadOnlyList<GroceryCategoryRow> Categories { get; private set; } = [];
 
+    public IReadOnlyList<AssistanceCategoryChoice> AssistanceCategories { get; private set; } = [];
+
     public IReadOnlyList<string> Warnings { get; private set; } = [];
 
     public bool HasWarnings => Warnings.Count > 0;
 
-    partial void OnSelectedKindChanged(GroceryPlanKind value) => Refresh();
+    public bool HasPlan { get; private set; }
+
+    public bool HasAssistanceRecorded { get; private set; }
+
+    public bool CanAddAssistance => HasPlan && !HasAssistanceRecorded;
+
+    public bool CanEditAssistance => HasPlan && HasAssistanceRecorded;
+
+    public bool IsCategoryEditor => IsEditorOpen && !IsAssistanceEditor;
+
+    public string AssistanceFrequencyText =>
+        "Weekly (assistance value is stored as a weekly amount)";
+
+    public string AssistanceNotPermanentNote =>
+        "Assistance is not assumed to be permanent. The fallback plan remains the cash picture if it ends.";
+
+    public string EditorTitle => IsAssistanceEditor
+        ? HasAssistanceRecorded ? "Edit assistance" : "Add assistance"
+        : SelectedCategory is { } category
+            ? category.Name
+            : "Grocery category";
+
+    public string EditorSaveLabel => IsAssistanceEditor ? "Save assistance" : "Save category";
+
+    public string? EditorEffectPreview =>
+        IsAssistanceEditor
+            ? string.IsNullOrWhiteSpace(CashStillRequired) ? AssistanceNotPermanentNote : CashStillRequired
+            : "A weekly grocery limit is the most you intend to spend in this part of the shop.";
+
+    public bool HasEditorChanges => IsEditorOpen && Fingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => IsAssistanceEditor ? SaveAssistanceCommand : SaveCategoryCommand;
+
+    public ICommand CancelEditorCommand => CancelEditorAliasCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges
+            || _dialog.Confirm("Unsaved changes", "Close without saving this grocery category or assistance?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        IsAssistanceEditor = false;
+        ErrorMessage = null;
+    }
+
+    private string Fingerprint() =>
+        IsAssistanceEditor
+            ? $"{SelectedAssistanceStatus}|{AssistanceSource}|{AssistanceValue}|{AssistanceEffective}|{AssistanceReview}|{AssistanceNotes}|{string.Join(',', AssistanceCategories.Where(item => item.IsSupplied).Select(item => item.Id))}"
+            : $"{SelectedCategory?.Id}|{CategoryLimit}|{CategoryRollover}|{CategoryIsEssential}|{CategorySuppliedByAssistance}";
+
+    [RelayCommand]
+    private void CancelEditorAlias() => DismissEditor();
+
+    [RelayCommand]
+    private void SelectCategory(GroceryCategoryRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = row.Id;
+        IsAssistanceSelected = false;
+        SelectedCategory = Categories.FirstOrDefault(item => item.Id == row.Id) ?? row;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void SelectAssistance()
+    {
+        if (!HasPlan)
+        {
+            return;
+        }
+
+        SelectedRecordId = null;
+        IsAssistanceSelected = true;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void OpenCategory(GroceryCategoryRow? row)
+    {
+        if (row is null || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        SelectedRecordId = row.Id;
+        IsAssistanceSelected = false;
+        IsAssistanceEditor = false;
+        LoadCategory(row);
+        ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAddAssistance()
+    {
+        if (!HasPlan || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        IsAssistanceSelected = true;
+        SelectedRecordId = null;
+        IsAssistanceEditor = true;
+        SelectedAssistanceStatus = "not-expected";
+        AssistanceExpected = false;
+        AssistanceSuspended = false;
+        AssistanceSource = string.Empty;
+        AssistanceValue = string.Empty;
+        AssistanceEffective = null;
+        AssistanceReview = null;
+        AssistanceNotes = string.Empty;
+        AssistanceCategories = Categories
+            .Select(category => new AssistanceCategoryChoice(category.Id, category.Name, false))
+            .ToList();
+        RefreshAssistanceContext();
+        ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(AssistanceCategories));
+        OnPropertyChanged(nameof(EditorTitle));
+        OnPropertyChanged(nameof(EditorEffectPreview));
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginEditAssistance()
+    {
+        if (!HasPlan || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var plan = _session.Document.GroceryPlanOf(SelectedKind);
+        if (plan is null)
+        {
+            return;
+        }
+
+        IsAssistanceSelected = true;
+        SelectedRecordId = null;
+        IsAssistanceEditor = true;
+        LoadAssistance(plan);
+        RefreshAssistanceContext();
+        ErrorMessage = null;
+        _originalFingerprint = Fingerprint();
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        OnPropertyChanged(nameof(EditorEffectPreview));
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void OpenAssistance()
+    {
+        if (HasAssistanceRecorded)
+        {
+            BeginEditAssistance();
+            return;
+        }
+
+        BeginAddAssistance();
+    }
+
+    [RelayCommand]
+    private void ToggleAssistanceCategory(Guid id)
+    {
+        AssistanceCategories = AssistanceCategories
+            .Select(item => item.Id == id ? item with { IsSupplied = !item.IsSupplied } : item)
+            .ToList();
+        OnPropertyChanged(nameof(AssistanceCategories));
+    }
+
+    private void LoadCategory(GroceryCategoryRow row)
+    {
+        SelectedCategory = Categories.FirstOrDefault(item => item.Id == row.Id) ?? row;
+        if (!_session.IsOpen)
+        {
+            return;
+        }
+
+        var plan = _session.Document.GroceryPlanOf(SelectedKind);
+        var category = plan?.Categories.FirstOrDefault(item => item.Id == row.Id);
+        if (category is null)
+        {
+            return;
+        }
+
+        CategoryLimit = AmountParsing.Format(category.WeeklyLimit);
+        CategoryRollover = category.Rollover;
+        CategoryIsEssential = category.IsEssential;
+        CategorySuppliedByAssistance = category.SuppliedByAssistance;
+    }
+
+    private void LoadAssistance(GroceryPlan plan)
+    {
+        var assistance = plan.Assistance;
+        SelectedAssistanceStatus = assistance.IsSuspended
+            ? "suspended"
+            : assistance.IsExpected
+                ? "expected"
+                : "not-expected";
+        AssistanceExpected = assistance.IsExpected;
+        AssistanceSuspended = assistance.IsSuspended;
+        AssistanceSource = assistance.SourceName ?? string.Empty;
+        AssistanceValue = assistance.EstimatedWeeklyValue.IsZero
+            ? string.Empty
+            : AmountParsing.Format(assistance.EstimatedWeeklyValue);
+        AssistanceEffective = assistance.EffectiveDate?.ToDateTime(TimeOnly.MinValue);
+        AssistanceReview = assistance.ReviewDate?.ToDateTime(TimeOnly.MinValue);
+        AssistanceNotes = assistance.Notes ?? string.Empty;
+        AssistanceCategories = plan.Categories
+            .Select(category => new AssistanceCategoryChoice(
+                category.Id,
+                category.Name,
+                category.SuppliedByAssistance || assistance.Supplies(category.Name)))
+            .ToList();
+        OnPropertyChanged(nameof(AssistanceCategories));
+    }
+
+    private void RefreshAssistanceContext()
+    {
+        if (!_session.IsOpen)
+        {
+            CashStillRequired = string.Empty;
+            OnPropertyChanged(nameof(EditorEffectPreview));
+            return;
+        }
+
+        var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+        var document = _session.Document;
+        var selected = document.GroceryPlanOf(SelectedKind);
+        var requirement = selected is null ? null : GroceryPlanner.Require(selected, today);
+
+        CashStillRequired = requirement is null
+            ? "Create this plan to see cash still required after assistance."
+            : $"{requirement.TotalCash.ToDisplayString()} cash still required this week after assistance that actually applies.";
+
+        OnPropertyChanged(nameof(EditorEffectPreview));
+    }
+
+    partial void OnSelectedKindChanged(GroceryPlanKind value)
+    {
+        DismissEditor();
+        Refresh();
+    }
+
+    partial void OnSelectedAssistanceStatusChanged(string value)
+    {
+        AssistanceExpected = value is "expected" or "suspended";
+        AssistanceSuspended = value == "suspended";
+    }
 
     [RelayCommand]
     private async Task CreatePlanAsync(CancellationToken cancellationToken)
@@ -220,49 +494,67 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     [RelayCommand]
     private async Task SaveCategoryAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen)
+        if (!TryBeginSave())
         {
-            ErrorMessage = "Open the household database first.";
             return;
         }
 
-        if (SelectedCategory is not { } selected)
+        try
         {
-            ErrorMessage = "Choose a grocery category first.";
-            return;
-        }
+            if (!_session.IsOpen)
+            {
+                ErrorMessage = "Open the household database first.";
+                return;
+            }
 
-        if (!AmountParsing.TryParseMoney(CategoryLimit, out var limit) || limit.IsNegative)
+            if (SelectedCategory is not { } selected)
+            {
+                ErrorMessage = "Choose a grocery category first.";
+                return;
+            }
+
+            if (!AmountParsing.TryParseMoney(CategoryLimit, out var limit) || limit.IsNegative)
+            {
+                ErrorMessage = "Enter a weekly limit of zero or more.";
+                return;
+            }
+
+            SelectedRecordId = selected.Id;
+            if (!TryUpdatePlan(
+                    plan => plan with
+                    {
+                        Categories = plan.Categories
+                            .Select(category => category.Id == selected.Id
+                                ? category with
+                                {
+                                    WeeklyLimit = limit,
+                                    Rollover = CategoryRollover,
+                                    IsEssential = CategoryIsEssential,
+                                    SuppliedByAssistance = CategorySuppliedByAssistance
+                                }
+                                : category)
+                            .ToList()
+                    },
+                    out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            ErrorMessage = null;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? $"{selected.Name} set to {limit.ToDisplayString()} a week."
+                : _session.LastError ?? "The category could not be saved.";
+
+            if (StatusMessage?.Contains(" set to ", StringComparison.Ordinal) == true)
+            {
+                DismissEditor();
+            }
+        }
+        finally
         {
-            ErrorMessage = "Enter a weekly limit of zero or more.";
-            return;
+            EndSave();
         }
-
-        if (!TryUpdatePlan(
-                plan => plan with
-                {
-                    Categories = plan.Categories
-                        .Select(category => category.Id == selected.Id
-                            ? category with
-                            {
-                                WeeklyLimit = limit,
-                                Rollover = CategoryRollover,
-                                IsEssential = CategoryIsEssential,
-                                SuppliedByAssistance = CategorySuppliedByAssistance
-                            }
-                            : category)
-                        .ToList()
-                },
-                out var error))
-        {
-            ErrorMessage = error;
-            return;
-        }
-
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{selected.Name} set to {limit.ToDisplayString()} a week."
-            : _session.LastError ?? "The category could not be saved.";
     }
 
     [RelayCommand]
@@ -351,50 +643,78 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
     [RelayCommand]
     private async Task SaveAssistanceAsync(CancellationToken cancellationToken)
     {
-        if (!_session.IsOpen)
+        if (!TryBeginSave())
         {
-            ErrorMessage = "Open the household database first.";
             return;
         }
 
-        if (!AmountParsing.TryParseMoney(
-                string.IsNullOrWhiteSpace(AssistanceValue) ? "0" : AssistanceValue,
-                out var value)
-            || value.IsNegative)
+        try
         {
-            ErrorMessage = "Enter the estimated weekly value of the assistance.";
-            return;
-        }
+            if (!_session.IsOpen)
+            {
+                ErrorMessage = "Open the household database first.";
+                return;
+            }
 
-        if (!TryUpdatePlan(
-                plan => plan with
+            Money value = Money.Zero;
+            if (!string.IsNullOrWhiteSpace(AssistanceValue))
+            {
+                if (!AmountParsing.TryParseMoney(AssistanceValue, out value) || value.IsNegative)
                 {
-                    Assistance = plan.Assistance with
-                    {
-                        IsExpected = AssistanceExpected,
-                        IsSuspended = AssistanceSuspended,
-                        SourceName = string.IsNullOrWhiteSpace(AssistanceSource) ? null : AssistanceSource.Trim(),
-                        EstimatedWeeklyValue = value,
-                        EffectiveDate = AssistanceEffective is { } effective
-                            ? DateOnly.FromDateTime(effective)
-                            : null,
-                        ReviewDate = AssistanceReview is { } review ? DateOnly.FromDateTime(review) : null,
-                        CategoriesSupplied = plan.Categories
-                            .Where(category => category.SuppliedByAssistance)
-                            .Select(category => category.Name)
-                            .ToList()
-                    }
-                },
-                out var error))
-        {
-            ErrorMessage = error;
-            return;
-        }
+                    ErrorMessage = "Enter the estimated weekly value if it is known, or leave it blank.";
+                    return;
+                }
+            }
 
-        ErrorMessage = null;
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? "Food assistance saved. The fallback plan still shows the cash requirement without it."
-            : _session.LastError ?? "The assistance details could not be saved.";
+            var suppliedNames = AssistanceCategories
+                .Where(item => item.IsSupplied)
+                .Select(item => item.Name)
+                .ToList();
+
+            if (!TryUpdatePlan(
+                    plan => plan with
+                    {
+                        Categories = plan.Categories
+                            .Select(category => category with
+                            {
+                                SuppliedByAssistance = suppliedNames.Contains(category.Name, StringComparer.OrdinalIgnoreCase)
+                            })
+                            .ToList(),
+                        Assistance = plan.Assistance with
+                        {
+                            IsExpected = SelectedAssistanceStatus is "expected" or "suspended",
+                            IsSuspended = SelectedAssistanceStatus == "suspended",
+                            SourceName = string.IsNullOrWhiteSpace(AssistanceSource) ? null : AssistanceSource.Trim(),
+                            EstimatedWeeklyValue = value,
+                            EffectiveDate = AssistanceEffective is { } effective
+                                ? DateOnly.FromDateTime(effective)
+                                : null,
+                            ReviewDate = AssistanceReview is { } review ? DateOnly.FromDateTime(review) : null,
+                            Notes = string.IsNullOrWhiteSpace(AssistanceNotes) ? null : AssistanceNotes.Trim(),
+                            CategoriesSupplied = suppliedNames
+                        }
+                    },
+                    out var error))
+            {
+                ErrorMessage = error;
+                return;
+            }
+
+            ErrorMessage = null;
+            StatusMessage = await _session.SaveAsync(cancellationToken)
+                ? "Food assistance saved. The fallback plan still shows the cash requirement without it."
+                : _session.LastError ?? "The assistance details could not be saved.";
+
+            if (StatusMessage?.StartsWith("Food assistance saved", StringComparison.Ordinal) == true)
+            {
+                IsAssistanceSelected = true;
+                DismissEditor();
+            }
+        }
+        finally
+        {
+            EndSave();
+        }
     }
 
     private bool TryUpdatePlan(Func<GroceryPlan, GroceryPlan> update, out string? error)
@@ -415,26 +735,27 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
         return _session.TryReplace(document with { GroceryPlans = plans }, out error);
     }
 
-    partial void OnSelectedCategoryChanged(GroceryCategoryRow? value)
+    private bool TryBeginSave()
     {
-        if (value is null || !_session.IsOpen)
+        if (System.Threading.Interlocked.Exchange(ref _saveDepth, 1) != 0)
         {
-            return;
+            return false;
         }
 
-        var plan = _session.Document.GroceryPlanOf(SelectedKind);
-        var category = plan?.Categories.FirstOrDefault(item => item.Id == value.Id);
-
-        if (category is null)
-        {
-            return;
-        }
-
-        CategoryLimit = AmountParsing.Format(category.WeeklyLimit);
-        CategoryRollover = category.Rollover;
-        CategoryIsEssential = category.IsEssential;
-        CategorySuppliedByAssistance = category.SuppliedByAssistance;
+        return true;
     }
+
+    private void EndSave() => System.Threading.Interlocked.Exchange(ref _saveDepth, 0);
+
+    private static bool IsAssistanceRecorded(FoodAssistance assistance) =>
+        assistance.IsExpected
+        || assistance.IsSuspended
+        || !string.IsNullOrWhiteSpace(assistance.SourceName)
+        || !assistance.EstimatedWeeklyValue.IsZero
+        || assistance.EffectiveDate is not null
+        || assistance.ReviewDate is not null
+        || !string.IsNullOrWhiteSpace(assistance.Notes)
+        || assistance.CategoriesSupplied.Count > 0;
 
     private void OnSessionChanged(object? sender, EventArgs e) => Refresh();
 
@@ -443,21 +764,31 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
         if (!_session.IsOpen)
         {
             Categories = [];
+            AssistanceCategories = [];
             Warnings = [];
             PlanSummary = string.Empty;
             AssistanceSummary = string.Empty;
             FallbackSummary = string.Empty;
+            EmergencySummary = string.Empty;
+            CashStillRequired = string.Empty;
             CategoryLimit = string.Empty;
             NewCategoryName = string.Empty;
             AssistanceSource = string.Empty;
             AssistanceValue = string.Empty;
+            AssistanceNotes = string.Empty;
             AssistanceEffective = null;
             AssistanceReview = null;
             AssistanceExpected = false;
             AssistanceSuspended = false;
+            SelectedAssistanceStatus = "not-expected";
             SelectedCategory = null;
+            SelectedRecordId = null;
+            IsAssistanceSelected = false;
+            HasPlan = false;
+            HasAssistanceRecorded = false;
             StatusMessage = null;
             ErrorMessage = null;
+            DismissEditor();
             Notify();
             return;
         }
@@ -465,14 +796,24 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
         var document = _session.Document;
         var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         var plan = document.GroceryPlanOf(SelectedKind);
+        HasPlan = plan is not null;
+        HasAssistanceRecorded = plan is not null && IsAssistanceRecorded(plan.Assistance);
 
         if (plan is null)
         {
             Categories = [];
+            AssistanceCategories = [];
             Warnings = [];
             PlanSummary = $"No {SelectedKind.ToDisplayName().ToLowerInvariant()} has been created yet.";
             AssistanceSummary = string.Empty;
             FallbackSummary = string.Empty;
+            EmergencySummary = "No emergency minimum plan has been created.";
+            CashStillRequired = string.Empty;
+            if (IsEditorOpen)
+            {
+                DismissEditor();
+            }
+
             Notify();
             return;
         }
@@ -501,9 +842,16 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
                     category.GuidanceSource,
                     category.GuidanceEffectiveDate?.ToString("yyyy-MM-dd") ?? "No effective date",
                     category.Confidence.ToString(),
-                    category.ReviewRequired ? "Review required" : "Current");
+                    category.ReviewRequired ? "Review required" : "Current",
+                    category.Id == SelectedRecordId);
             })
             .ToList();
+
+        SelectedCategory = SelectedRecordId is { } id
+            ? Categories.FirstOrDefault(item => item.Id == id)
+            : SelectedCategory is { } selected
+                ? Categories.FirstOrDefault(item => item.Id == selected.Id)
+                : null;
 
         PlanSummary =
             $"{requirement.TotalCash.ToDisplayString()} of cash a week " +
@@ -522,19 +870,37 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
 
         var fallback = document.GroceryPlanOf(GroceryPlanKind.FallbackWithoutAssistance);
         var current = document.GroceryPlanOf(GroceryPlanKind.Current);
+        var emergency = document.GroceryPlanOf(GroceryPlanKind.EmergencyMinimum);
 
         FallbackSummary = current is null
             ? "Create a current plan to see what happens if assistance ends."
             : GroceryPlanner.IfAssistanceEnds(current, fallback, today).Explanation;
 
-        Warnings = requirement.Warnings;
+        EmergencySummary = emergency is null
+            ? "No emergency minimum plan has been created."
+            : $"{GroceryPlanner.Require(emergency, today).TotalCash.ToDisplayString()} cash a week on the emergency plan.";
 
-        AssistanceExpected = plan.Assistance.IsExpected;
-        AssistanceSuspended = plan.Assistance.IsSuspended;
-        AssistanceSource = plan.Assistance.SourceName ?? string.Empty;
-        AssistanceValue = AmountParsing.Format(plan.Assistance.EstimatedWeeklyValue);
-        AssistanceEffective = plan.Assistance.EffectiveDate?.ToDateTime(TimeOnly.MinValue);
-        AssistanceReview = plan.Assistance.ReviewDate?.ToDateTime(TimeOnly.MinValue);
+        Warnings = requirement.Warnings;
+        CashStillRequired =
+            $"{requirement.TotalCash.ToDisplayString()} cash still required this week after assistance that actually applies.";
+
+        if (!IsEditorOpen)
+        {
+            AssistanceExpected = plan.Assistance.IsExpected;
+            AssistanceSuspended = plan.Assistance.IsSuspended;
+            SelectedAssistanceStatus = plan.Assistance.IsSuspended
+                ? "suspended"
+                : plan.Assistance.IsExpected
+                    ? "expected"
+                    : "not-expected";
+            AssistanceSource = plan.Assistance.SourceName ?? string.Empty;
+            AssistanceValue = plan.Assistance.EstimatedWeeklyValue.IsZero
+                ? string.Empty
+                : AmountParsing.Format(plan.Assistance.EstimatedWeeklyValue);
+            AssistanceEffective = plan.Assistance.EffectiveDate?.ToDateTime(TimeOnly.MinValue);
+            AssistanceReview = plan.Assistance.ReviewDate?.ToDateTime(TimeOnly.MinValue);
+            AssistanceNotes = plan.Assistance.Notes ?? string.Empty;
+        }
 
         Notify();
     }
@@ -556,10 +922,30 @@ public sealed partial class GroceryPlanViewModel : PageViewModel, IEditablePage
                 StringComparer.OrdinalIgnoreCase);
     }
 
+    private void RematchSelection()
+    {
+        Categories = Categories
+            .Select(item => item with { IsSelected = !IsAssistanceSelected && item.Id == SelectedRecordId })
+            .ToList();
+        SelectedCategory = Categories.FirstOrDefault(item => item.Id == SelectedRecordId) ?? SelectedCategory;
+        OnPropertyChanged(nameof(Categories));
+        OnPropertyChanged(nameof(IsAssistanceSelected));
+        OnPropertyChanged(nameof(IsSelected));
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
     private void Notify()
     {
         OnPropertyChanged(nameof(Categories));
+        OnPropertyChanged(nameof(AssistanceCategories));
         OnPropertyChanged(nameof(Warnings));
         OnPropertyChanged(nameof(HasWarnings));
+        OnPropertyChanged(nameof(HasPlan));
+        OnPropertyChanged(nameof(HasAssistanceRecorded));
+        OnPropertyChanged(nameof(CanAddAssistance));
+        OnPropertyChanged(nameof(CanEditAssistance));
+        OnPropertyChanged(nameof(EditorTitle));
+        OnPropertyChanged(nameof(IsCategoryEditor));
+        OnPropertyChanged(nameof(EditorEffectPreview));
     }
 }

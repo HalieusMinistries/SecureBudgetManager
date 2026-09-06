@@ -2,26 +2,83 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <StackPanel>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
-        <TextBlock Style="{StaticResource CardBody}" FontWeight="SemiBold" Text="{Binding SelectedCategory.Name}"/>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly limit ($)"/>
-        <TextBox Style="{StaticResource FormTextBox}"
-                 Text="{Binding CategoryLimit, UpdateSourceTrigger=PropertyChanged}"
-                 AutomationProperties.Name="Weekly limit for this category"/>
-        <TextBlock Style="{StaticResource FieldLabel}" Text="What happens to unspent money"/>
-        <ComboBox Style="{StaticResource FormComboBox}"
-                  ItemsSource="{Binding RolloverRules}"
-                  DisplayMemberPath="Name"
-                  SelectedValuePath="Value"
-                  SelectedValue="{Binding CategoryRollover}"
-                  AutomationProperties.Name="Rollover rule"/>
-        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
-                  Content="Essential food, protected before discretionary spending"
-                  IsChecked="{Binding CategoryIsEssential}"
-                  AutomationProperties.Name="Essential food"/>
-        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,6,0,0"
-                  Content="Normally supplied by food assistance rather than cash"
-                  IsChecked="{Binding CategorySuppliedByAssistance}"
-                  AutomationProperties.Name="Supplied by food assistance"/>
+        <StackPanel Visibility="{Binding IsCategoryEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Category"/>
+            <TextBlock Style="{StaticResource CardBody}" FontWeight="SemiBold" Text="{Binding SelectedCategory.Name}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Weekly limit ($)"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding CategoryLimit, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Weekly limit for this category"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="What happens to unspent money"/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding RolloverRules}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding CategoryRollover}"
+                      AutomationProperties.Name="Rollover rule"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,10,0,0"
+                      Content="Essential food, protected before discretionary spending"
+                      IsChecked="{Binding CategoryIsEssential}"
+                      AutomationProperties.Name="Essential food"/>
+            <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,6,0,0"
+                      Content="Normally supplied by food assistance rather than cash"
+                      IsChecked="{Binding CategorySuppliedByAssistance}"
+                      AutomationProperties.Name="Supplied by food assistance"/>
+        </StackPanel>
+
+        <StackPanel Visibility="{Binding IsAssistanceEditor, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Assistance source"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding AssistanceSource, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Assistance source"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Received or expected"/>
+            <ComboBox Style="{StaticResource FormComboBox}"
+                      ItemsSource="{Binding AssistanceStatuses}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Value"
+                      SelectedValue="{Binding SelectedAssistanceStatus}"
+                      AutomationProperties.Name="Assistance status"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Date"/>
+            <DatePicker Style="{StaticResource FormDatePicker}"
+                        SelectedDate="{Binding AssistanceEffective}"
+                        AutomationProperties.Name="Assistance effective date"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Frequency"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssistanceFrequencyText}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Estimated weekly value — leave blank if unknown"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding AssistanceValue, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Estimated weekly value of assistance"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Review by"/>
+            <DatePicker Style="{StaticResource FormDatePicker}"
+                        SelectedDate="{Binding AssistanceReview}"
+                        AutomationProperties.Name="Assistance review date"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Category-specific assistance"/>
+            <ItemsControl ItemsSource="{Binding AssistanceCategories}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Style="{StaticResource ThemedCheckBox}"
+                                  Margin="0,4,0,0"
+                                  Content="{Binding Name}"
+                                  IsChecked="{Binding IsSupplied, Mode=OneWay}"
+                                  Command="{Binding DataContext.ToggleAssistanceCategoryCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                  CommandParameter="{Binding Id}"
+                                  AutomationProperties.Name="{Binding Name}"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Current plan"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding PlanSummary}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Fallback plan"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding FallbackSummary}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Emergency plan"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding EmergencySummary}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Cash still required after assistance"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding CashStillRequired}"/>
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Notes"/>
+            <TextBox Style="{StaticResource FormTextBox}"
+                     Text="{Binding AssistanceNotes, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Assistance notes"/>
+            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="{Binding AssistanceNotPermanentNote}"/>
+        </StackPanel>
     </StackPanel>
 </UserControl>

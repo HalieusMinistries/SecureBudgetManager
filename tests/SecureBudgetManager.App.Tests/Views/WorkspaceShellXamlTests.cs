@@ -63,6 +63,38 @@ public sealed class WorkspaceShellXamlTests
     }
 
     [Fact]
+    public void BillsAndGroceryAssistanceEditorsUseTheSharedOverlay()
+    {
+        var root = FindRepoRoot();
+        var overlay = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "Editors", "EditorOverlay.xaml"));
+        var bills = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "AllocationsView.xaml"));
+        var grocery = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "GroceryPlanView.xaml"));
+        var billForm = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "Editors", "BillEditorForm.xaml"));
+        var groceryForm = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "Editors", "GroceryCategoryEditorForm.xaml"));
+
+        Assert.Contains("BillEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("GroceryCategoryEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("SelectBillCommand", bills, StringComparison.Ordinal);
+        Assert.Contains("OpenBillCommand", bills, StringComparison.Ordinal);
+        Assert.Contains("BeginAddTransferCommand", bills, StringComparison.Ordinal);
+        Assert.Contains("BeginEditTransferCommand", bills, StringComparison.Ordinal);
+        Assert.Contains("ScrollRestore.VerticalOffset", bills, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding AddTransferCommand}\"", bills, StringComparison.Ordinal);
+        Assert.DoesNotContain("Transfer between personal balances", bills, StringComparison.Ordinal);
+        Assert.Contains("This summary is read-only", bills, StringComparison.Ordinal);
+        Assert.Contains("PayerChoices", billForm, StringComparison.Ordinal);
+        Assert.Contains("IsTransferEditor", billForm, StringComparison.Ordinal);
+        Assert.Contains("BeginAddAssistanceCommand", grocery, StringComparison.Ordinal);
+        Assert.Contains("BeginEditAssistanceCommand", grocery, StringComparison.Ordinal);
+        Assert.Contains("SelectAssistanceCommand", grocery, StringComparison.Ordinal);
+        Assert.Contains("SelectCategoryCommand", grocery, StringComparison.Ordinal);
+        Assert.Contains("ScrollRestore.VerticalOffset", grocery, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding SaveAssistanceCommand}\"", grocery, StringComparison.Ordinal);
+        Assert.Contains("IsAssistanceEditor", groceryForm, StringComparison.Ordinal);
+        Assert.Contains("AssistanceNotPermanentNote", groceryForm, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImplicitViewTemplates_AreWrappedSoUserControlsDoNotRecurse()
     {
         var xaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "SecureBudgetManager.App", "App.xaml"));
