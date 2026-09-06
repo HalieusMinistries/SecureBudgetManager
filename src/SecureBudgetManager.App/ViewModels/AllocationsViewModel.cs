@@ -511,11 +511,19 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            PaymentAmount = string.Empty;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? $"{amount.ToDisplayString()} recorded as paid on {selected.Name}."
-                : _session.LastError ?? "The payment could not be saved.";
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                "Payment recorded",
+                document => document.Transactions.Any(item =>
+                    item.Amount == amount && item.Description == $"{selected.Name} payment"));
+            ErrorMessage = result.IsSuccess ? null : result.Message;
+            StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+            if (result.IsSuccess)
+            {
+                PaymentAmount = string.Empty;
+                DismissEditor();
+            }
         }
         finally
         {
@@ -574,11 +582,19 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            ReserveAmount = string.Empty;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? $"{amount.ToDisplayString()} recorded against {selected.Name}."
-                : _session.LastError ?? "The reserve could not be saved.";
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                "Reservation saved",
+                document => document.Reserves.Any(item =>
+                    item.ObligationId == selected.ObligationId && item.Reserved == amount));
+            ErrorMessage = result.IsSuccess ? null : result.Message;
+            StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+            if (result.IsSuccess)
+            {
+                ReserveAmount = string.Empty;
+                DismissEditor();
+            }
         }
         finally
         {
@@ -707,12 +723,16 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? $"{SelectedReservation.Name} assignment saved."
-                : _session.LastError ?? "The assignment could not be saved.";
-
-            if (StatusMessage?.EndsWith("assignment saved.", StringComparison.Ordinal) == true)
+            var obligationId = SelectedReservation.ObligationId;
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                "Bill assignment saved",
+                document => document.Expenses.Any(item =>
+                    item.Id == obligationId && item.Assignment == assignment));
+            ErrorMessage = result.IsSuccess ? null : result.Message;
+            StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+            if (result.IsSuccess)
             {
                 DismissEditor();
             }
@@ -908,12 +928,14 @@ public sealed partial class AllocationsViewModel : PageViewModel, IEditablePage
                 return;
             }
 
-            ErrorMessage = null;
-            StatusMessage = await _session.SaveAsync(cancellationToken)
-                ? $"{amount.ToDisplayString()} recorded from {from.Name} to {to.Name}."
-                : _session.LastError ?? "The transfer could not be saved.";
-
-            if (StatusMessage?.Contains("recorded from", StringComparison.Ordinal) == true)
+            var result = await EditorSaveCoordinator.PersistCurrentAsync(
+                _session,
+                cancellationToken,
+                "Transfer saved",
+                saved => saved.Transfers.Any(item => item.Id == transfer.Id && item.Amount == amount));
+            ErrorMessage = result.IsSuccess ? null : result.Message;
+            StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+            if (result.IsSuccess)
             {
                 DismissEditor();
             }

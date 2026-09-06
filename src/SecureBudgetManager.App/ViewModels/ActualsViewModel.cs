@@ -408,20 +408,13 @@ public sealed partial class ActualsViewModel : PageViewModel, IEditablePage
 
     private async Task<bool> CommitAsync(SecureBudgetManager.Core.Storage.BudgetDocument document, CancellationToken cancellationToken)
     {
-        if (!_session.TryReplace(document, out var error))
-        {
-            ErrorMessage = error;
-            return false;
-        }
-
-        if (!await _session.SaveAsync(cancellationToken))
-        {
-            ErrorMessage = _session.LastError;
-            return false;
-        }
-
-        ErrorMessage = null;
-        return true;
+        var result = await EditorSaveCoordinator.TryCommitAsync(
+            _session,
+            document,
+            cancellationToken,
+            IsPayslipEditor ? "Payslip saved" : "Payment recorded");
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        return result.IsSuccess;
     }
 
     private void OnSessionChanged(object? sender, EventArgs e) => Refresh();

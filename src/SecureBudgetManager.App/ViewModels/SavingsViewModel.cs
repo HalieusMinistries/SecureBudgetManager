@@ -279,17 +279,21 @@ public sealed partial class SavingsViewModel : PageViewModel, IEditablePage
             return;
         }
 
-        if (!await _session.SaveAsync(cancellationToken))
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Fund saved",
+            saved => saved.Funds.Any(item => item.Id == fund.Id && item.Name == fund.Name));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        if (!result.IsSuccess)
         {
-            ErrorMessage = _session.LastError;
             return;
         }
 
         Name = string.Empty;
         CurrentBalance = "0";
         TargetAmount = string.Empty;
-        ErrorMessage = null;
-        StatusMessage = "Fund saved.";
+        StatusMessage = result.Message;
         DismissEditor();
     }
 
@@ -358,9 +362,14 @@ public sealed partial class SavingsViewModel : PageViewModel, IEditablePage
             return;
         }
 
-        if (!await _session.SaveAsync(cancellationToken))
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Goal saved",
+            saved => saved.Goals.Any(item => item.Id == goal.Id && item.Name == goal.Name));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        if (!result.IsSuccess)
         {
-            ErrorMessage = _session.LastError;
             return;
         }
 
@@ -368,8 +377,7 @@ public sealed partial class SavingsViewModel : PageViewModel, IEditablePage
         GoalTarget = string.Empty;
         GoalCurrent = "0";
         GoalContribution = "0";
-        ErrorMessage = null;
-        StatusMessage = "Goal saved.";
+        StatusMessage = result.Message;
         DismissEditor();
     }
 

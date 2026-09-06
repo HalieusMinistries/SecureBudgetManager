@@ -475,22 +475,13 @@ public sealed partial class HouseholdViewModel : PageViewModel, IEditablePage
 
     private async Task<bool> CommitAsync(BudgetDocument document, CancellationToken cancellationToken)
     {
-        ErrorMessage = null;
-
-        if (!_session.TryReplace(document, out var error))
-        {
-            ErrorMessage = error;
-            return false;
-        }
-
-        var saved = await _session.SaveAsync(cancellationToken);
-        if (!saved)
-        {
-            ErrorMessage = _session.LastError ?? "The household data could not be saved.";
-            return false;
-        }
-
-        return true;
+        var result = await EditorSaveCoordinator.TryCommitAsync(
+            _session,
+            document,
+            cancellationToken,
+            "Member saved");
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        return result.IsSuccess;
     }
 
     private bool ConfirmDiscardEditor(bool forcePrompt = false)

@@ -397,13 +397,15 @@ public sealed partial class LocalGuidanceViewModel : PageViewModel, IEditablePag
             return;
         }
 
-        ErrorMessage = null;
-
-        StatusMessage = await _session.SaveAsync(cancellationToken)
-            ? $"{record.Category} guidance saved from {record.SourceName}."
-            : _session.LastError ?? "The guidance could not be saved.";
-
-        if (StatusMessage?.StartsWith(record.Category, StringComparison.Ordinal) == true)
+        var result = await EditorSaveCoordinator.PersistCurrentAsync(
+            _session,
+            cancellationToken,
+            "Guidance saved",
+            document => document.CostGuidance.Any(item =>
+                item.Id == record.Id && item.Category == record.Category));
+        ErrorMessage = result.IsSuccess ? null : result.Message;
+        StatusMessage = result.IsSuccess ? result.Message : StatusMessage;
+        if (result.IsSuccess)
         {
             DismissEditor();
         }
