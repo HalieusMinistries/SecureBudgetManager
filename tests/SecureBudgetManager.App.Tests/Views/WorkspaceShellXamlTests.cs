@@ -41,6 +41,28 @@ public sealed class WorkspaceShellXamlTests
     }
 
     [Fact]
+    public void TransferAndForeignAccountEditorsUseTheSharedOverlay()
+    {
+        var root = FindRepoRoot();
+        var overlay = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "Editors", "EditorOverlay.xaml"));
+        var transfers = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "InternationalTransfersView.xaml"));
+        var accounts = File.ReadAllText(Path.Combine(root, "src", "SecureBudgetManager.App", "Views", "ForeignAccountsView.xaml"));
+
+        Assert.Contains("InternationalTransferEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("ForeignAccountEditorForm", overlay, StringComparison.Ordinal);
+        Assert.Contains("BeginAddTransferCommand", transfers, StringComparison.Ordinal);
+        Assert.Contains("BeginEditTransferCommand", transfers, StringComparison.Ordinal);
+        Assert.Contains("SelectTransferCommand", transfers, StringComparison.Ordinal);
+        Assert.Contains("LeftDoubleClick", transfers, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding SaveTransferCommand}\"", transfers, StringComparison.Ordinal);
+        Assert.Contains("BeginAddCommand", accounts, StringComparison.Ordinal);
+        Assert.Contains("BeginEditCommand", accounts, StringComparison.Ordinal);
+        Assert.Contains("SelectAccountCommand", accounts, StringComparison.Ordinal);
+        Assert.DoesNotContain("Command=\"{Binding SaveAccountCommand}\"", accounts, StringComparison.Ordinal);
+        Assert.Contains("Possible reporting reminders", accounts, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImplicitViewTemplates_AreWrappedSoUserControlsDoNotRecurse()
     {
         var xaml = File.ReadAllText(Path.Combine(FindRepoRoot(), "src", "SecureBudgetManager.App", "App.xaml"));

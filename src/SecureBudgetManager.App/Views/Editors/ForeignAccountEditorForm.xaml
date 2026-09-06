@@ -1,0 +1,31 @@
+<UserControl x:Class="SecureBudgetManager.App.Views.Editors.ForeignAccountEditorForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Owner"/>
+        <ComboBox Style="{StaticResource FormComboBox}" ItemsSource="{Binding OwnerOptions}" DisplayMemberPath="Name" SelectedValuePath="Value" SelectedValue="{Binding OwnerId}" AutomationProperties.Name="Foreign account owner"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Institution"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Institution, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign institution"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Account nickname"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Nickname, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account nickname"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Country"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Country, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account country"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Currency"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding Currency, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Foreign account currency"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Recorded year-end or current balance"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding YearEndBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Recorded foreign account balance"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Leave blank if you do not have a recorded balance. This programme does not invent one."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Maximum calendar-year balance"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding MaximumBalance, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Maximum calendar year balance"/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Reporting exchange rate"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding ReportingRate, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Reporting exchange rate"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Enter only a rate you already have, with its source kept in your own records. Leave blank if you do not have one."/>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Estimated USD equivalent"/>
+        <TextBox Style="{StaticResource FormTextBox}" Text="{Binding UsdEquivalent, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Estimated USD equivalent"/>
+        <TextBlock Style="{StaticResource HintText}" Text="Enter only an estimate you already have. If you leave this blank and you have both a high balance and a rate, those entered figures are used."/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,12,0,0" Content="Financial interest" IsChecked="{Binding HasFinancialInterest}" AutomationProperties.Name="Financial interest"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Signature authority" IsChecked="{Binding HasSignatureAuthority}" AutomationProperties.Name="Signature authority"/>
+        <CheckBox Style="{StaticResource ThemedCheckBox}" Margin="0,8,0,0" Content="Archived (closed) account" IsChecked="{Binding IsArchived}" AutomationProperties.Name="Archive foreign account"/>
+        <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Text="These balances are not treated as United States available money."/>
+    </StackPanel>
+</UserControl>

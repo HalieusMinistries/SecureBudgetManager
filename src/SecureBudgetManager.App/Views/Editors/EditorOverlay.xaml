@@ -94,6 +94,12 @@
                             <DataTemplate DataType="{x:Type vm:LocalGuidanceViewModel}">
                                 <editors:GuidanceEditorForm/>
                             </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:InternationalTransfersViewModel}">
+                                <editors:InternationalTransferEditorForm/>
+                            </DataTemplate>
+                            <DataTemplate DataType="{x:Type vm:ForeignAccountsViewModel}">
+                                <editors:ForeignAccountEditorForm/>
+                            </DataTemplate>
                         </ContentControl.Resources>
                     </ContentControl>
                 </ScrollViewer>

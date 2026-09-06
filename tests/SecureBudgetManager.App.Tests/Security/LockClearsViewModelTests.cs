@@ -30,8 +30,8 @@ public sealed class LockClearsViewModelTests
         var guidance = new LocalGuidanceViewModel(session, dialog, TimeProvider.System);
         var rules = new AllocationRulesViewModel(session, dialog);
         var products = new ProductsViewModel(session, dialog, TimeProvider.System);
-        var transfers = new InternationalTransfersViewModel(session, TimeProvider.System);
-        var foreign = new ForeignAccountsViewModel(session);
+        var transfers = new InternationalTransfersViewModel(session, dialog, TimeProvider.System);
+        var foreign = new ForeignAccountsViewModel(session, dialog, TimeProvider.System);
         var dashboard = new DashboardViewModel(session, TimeProvider.System);
 
         household.HouseholdName = "The Harris household";

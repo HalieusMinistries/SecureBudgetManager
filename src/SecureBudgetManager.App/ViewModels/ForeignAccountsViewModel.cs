@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using SecureBudgetManager.App.Interaction;
 using SecureBudgetManager.App.Services;
 using SecureBudgetManager.Core.International;
 using SecureBudgetManager.Core.Models;
@@ -14,16 +16,21 @@ public sealed record ForeignAccountRow(
     string Nickname,
     string Currency,
     string HighBalance,
-    string Review);
+    string Review,
+    bool IsSelected = false);
 
 public sealed record ReminderRow(string Form, string Message, string Source);
 
 /// <summary>Foreign-account records and possible information-return reminders. No banking credentials.</summary>
-public sealed partial class ForeignAccountsViewModel : PageViewModel
+public sealed partial class ForeignAccountsViewModel : PageViewModel, IEditablePage
 {
     private readonly IBudgetSession _session;
+    private readonly IUserDialog _dialog;
+    private readonly TimeProvider _clock;
+    private Guid? _editingId;
+    private string _originalFingerprint = string.Empty;
 
-    public ForeignAccountsViewModel(IBudgetSession session)
+    public ForeignAccountsViewModel(IBudgetSession session, IUserDialog dialog, TimeProvider clock)
         : base(
             "Foreign accounts",
             "Reporting review",
@@ -32,6 +39,8 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
             "fact is known. This is not a substitute for a qualified tax professional.")
     {
         _session = session;
+        _dialog = dialog;
+        _clock = clock;
         _session.Changed += OnSessionChanged;
         Refresh();
     }
@@ -44,6 +53,10 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
         new(FilingStatus.HeadOfHousehold, "Head of household")
     ];
 
+    public IReadOnlyList<ChoiceOption<Guid>> OwnerOptions { get; private set; } =
+        [new(Guid.Empty, "Not assigned")];
+
+    [ObservableProperty] private Guid ownerId = Guid.Empty;
     [ObservableProperty] private string institution = string.Empty;
     [ObservableProperty] private string country = "South Africa";
     [ObservableProperty] private string nickname = string.Empty;
@@ -51,8 +64,10 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
     [ObservableProperty] private string maximumBalance = string.Empty;
     [ObservableProperty] private string yearEndBalance = string.Empty;
     [ObservableProperty] private string reportingRate = string.Empty;
+    [ObservableProperty] private string usdEquivalent = string.Empty;
     [ObservableProperty] private bool hasFinancialInterest = true;
     [ObservableProperty] private bool hasSignatureAuthority;
+    [ObservableProperty] private bool isArchived;
     [ObservableProperty] private int reminderYear = 2026;
     [ObservableProperty] private FilingStatus filingStatus = FilingStatus.MarriedFilingJointly;
     [ObservableProperty] private bool livesInUnitedStates = true;
@@ -60,10 +75,146 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
     [ObservableProperty] private string documentKind = "Transfer receipt";
     [ObservableProperty] private string? statusMessage;
     [ObservableProperty] private string? errorMessage;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EditorTitle))]
+    private bool isEditorOpen;
+    [ObservableProperty] private double listScrollOffset;
+    [ObservableProperty] private Guid? selectedRecordId;
 
     public IReadOnlyList<ForeignAccountRow> Accounts { get; private set; } = [];
     public IReadOnlyList<ReminderRow> Reminders { get; private set; } = [];
     public IReadOnlyList<string> Documents { get; private set; } = [];
+
+    public bool HasAccounts => Accounts.Count > 0;
+
+    public string EditorTitle => _editingId is null ? "Add foreign account" : "Edit foreign account";
+
+    public string EditorSaveLabel => "Save foreign account";
+
+    public string? EditorEffectPreview =>
+        "Recorded balances are for reporting review and are not added to United States available money. " +
+        "Enter only a rate, balance or USD equivalent you already have. This programme does not invent them.";
+
+    public bool HasEditorChanges => IsEditorOpen && AccountFingerprint() != _originalFingerprint;
+
+    public bool HasEditorError => !string.IsNullOrWhiteSpace(ErrorMessage);
+
+    public string? EditorError => ErrorMessage;
+
+    public ICommand SaveEditorCommand => SaveAccountCommand;
+
+    public ICommand CancelEditorCommand => CancelAccountEditorCommand;
+
+    public bool TryLeaveEditor()
+    {
+        if (!IsEditorOpen)
+        {
+            return true;
+        }
+
+        if (!HasEditorChanges || _dialog.Confirm("Unsaved changes", "Close without saving this foreign account?"))
+        {
+            DismissEditor();
+            return true;
+        }
+
+        return false;
+    }
+
+    public void DismissEditor()
+    {
+        IsEditorOpen = false;
+        _editingId = null;
+        ErrorMessage = null;
+    }
+
+    private string AccountFingerprint() =>
+        $"{OwnerId}|{Institution}|{Country}|{Nickname}|{Currency}|{MaximumBalance}|{YearEndBalance}|{ReportingRate}|{UsdEquivalent}|{HasFinancialInterest}|{HasSignatureAuthority}|{IsArchived}";
+
+    [RelayCommand]
+    private void CancelAccountEditor() => DismissEditor();
+
+    [RelayCommand]
+    private void SelectAccount(ForeignAccountRow? row)
+    {
+        if (row is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = row.Id;
+        RematchSelection();
+    }
+
+    [RelayCommand]
+    private void BeginAdd()
+    {
+        if (!TryLeaveEditor())
+        {
+            return;
+        }
+
+        _editingId = null;
+        OwnerId = Guid.Empty;
+        Institution = string.Empty;
+        Country = "South Africa";
+        Nickname = string.Empty;
+        Currency = "ZAR";
+        MaximumBalance = string.Empty;
+        YearEndBalance = string.Empty;
+        ReportingRate = string.Empty;
+        UsdEquivalent = string.Empty;
+        HasFinancialInterest = true;
+        HasSignatureAuthority = false;
+        IsArchived = false;
+        _originalFingerprint = AccountFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+    }
+
+    [RelayCommand]
+    private void BeginEdit(ForeignAccountRow? row)
+    {
+        if (row is null || !_session.IsOpen || !TryLeaveEditor())
+        {
+            return;
+        }
+
+        var account = _session.Document.ForeignAccounts.FirstOrDefault(item => item.Id == row.Id);
+        if (account is null)
+        {
+            return;
+        }
+
+        SelectedRecordId = account.Id;
+        _editingId = account.Id;
+        OwnerId = account.OwnerMemberId ?? Guid.Empty;
+        Institution = account.Institution;
+        Country = account.Country;
+        Nickname = account.Nickname;
+        Currency = account.Currency;
+        MaximumBalance = account.MaximumCalendarYearBalance is { } high
+            ? AmountParsing.Format(high)
+            : string.Empty;
+        YearEndBalance = account.YearEndBalance is { } yearEnd
+            ? AmountParsing.Format(yearEnd)
+            : string.Empty;
+        ReportingRate = account.ReportingExchangeRate is { } rate
+            ? AmountParsing.Format(rate)
+            : string.Empty;
+        UsdEquivalent = account.UsdEquivalent is { } usd
+            ? AmountParsing.Format(usd)
+            : string.Empty;
+        HasFinancialInterest = account.HasFinancialInterest;
+        HasSignatureAuthority = account.HasSignatureAuthority;
+        IsArchived = account.ClosedOn is not null;
+        _originalFingerprint = AccountFingerprint();
+        ErrorMessage = null;
+        IsEditorOpen = true;
+        OnPropertyChanged(nameof(EditorTitle));
+        RematchSelection();
+    }
 
     [RelayCommand]
     private async Task SaveAccountAsync(CancellationToken cancellationToken)
@@ -87,62 +238,59 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
             return;
         }
 
-        Money? high = null;
-        Money? yearEnd = null;
+        if (!TryOptionalMoney(MaximumBalance, "Enter a valid high balance or leave it blank.", out var high)
+            || !TryOptionalMoney(YearEndBalance, "Enter a valid recorded balance or leave it blank.", out var yearEnd)
+            || !TryOptionalMoney(UsdEquivalent, "Enter a valid USD equivalent or leave it blank.", out var usd))
+        {
+            return;
+        }
+
         decimal? rate = null;
-        if (!string.IsNullOrWhiteSpace(MaximumBalance))
-        {
-            if (!AmountParsing.TryParseMoney(MaximumBalance, out var parsed))
-            {
-                ErrorMessage = "Enter a valid high balance or leave it blank.";
-                return;
-            }
-
-            high = parsed;
-        }
-
-        if (!string.IsNullOrWhiteSpace(YearEndBalance))
-        {
-            if (!AmountParsing.TryParseMoney(YearEndBalance, out var parsed))
-            {
-                ErrorMessage = "Enter a valid year-end balance or leave it blank.";
-                return;
-            }
-
-            yearEnd = parsed;
-        }
-
         if (!string.IsNullOrWhiteSpace(ReportingRate))
         {
             if (!AmountParsing.TryParseDecimal(ReportingRate, out var parsed) || parsed <= 0m)
             {
-                ErrorMessage = "Enter a valid reporting exchange rate or leave it blank.";
+                ErrorMessage = "Enter a valid reporting exchange rate you already have, or leave it blank.";
                 return;
             }
 
             rate = parsed;
         }
 
+        var existing = _editingId is { } editing
+            ? _session.Document.ForeignAccounts.FirstOrDefault(item => item.Id == editing)
+            : null;
+        var today = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         var account = new ForeignAccount
         {
-            Id = Guid.NewGuid(),
+            Id = existing?.Id ?? Guid.NewGuid(),
+            OwnerMemberId = OwnerId == Guid.Empty ? null : OwnerId,
             Institution = Institution.Trim(),
-            Country = Country.Trim(),
+            Country = string.IsNullOrWhiteSpace(Country) ? "South Africa" : Country.Trim(),
             Nickname = Nickname.Trim(),
-            Currency = Currency.Trim().ToUpperInvariant(),
+            Currency = string.IsNullOrWhiteSpace(Currency) ? "ZAR" : Currency.Trim().ToUpperInvariant(),
             MaximumCalendarYearBalance = high,
             YearEndBalance = yearEnd,
             ReportingExchangeRate = rate,
-            UsdEquivalent = high is { } amount && rate is { } fx
+            UsdEquivalent = usd ?? (high is { } amount && rate is { } fx
                 ? new Money(amount.Amount * fx)
-                : high,
+                : high),
             HasFinancialInterest = HasFinancialInterest,
-            HasSignatureAuthority = HasSignatureAuthority
+            HasSignatureAuthority = HasSignatureAuthority,
+            OpenedOn = existing?.OpenedOn,
+            ClosedOn = IsArchived
+                ? existing?.ClosedOn ?? today
+                : null,
+            ReviewStatus = existing?.ReviewStatus ?? ClassificationReviewStatus.Unreviewed
         };
 
-        if (!_session.TryReplace(
-                _session.Document with { ForeignAccounts = _session.Document.ForeignAccounts.Append(account).ToList() },
-                out var error))
+        SelectedRecordId = account.Id;
+        var accounts = _session.Document.ForeignAccounts
+            .Where(item => item.Id != account.Id)
+            .Append(account)
+            .ToList();
+
+        if (!_session.TryReplace(_session.Document with { ForeignAccounts = accounts }, out var error))
         {
             ErrorMessage = error;
             return;
@@ -152,6 +300,29 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
         StatusMessage = await _session.SaveAsync(cancellationToken)
             ? "Foreign account saved. No banking credential was stored."
             : _session.LastError ?? "The account could not be saved.";
+
+        if (StatusMessage?.StartsWith("Foreign account saved", StringComparison.Ordinal) == true)
+        {
+            DismissEditor();
+        }
+    }
+
+    private bool TryOptionalMoney(string text, string invalidMessage, out Money? value)
+    {
+        value = null;
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return true;
+        }
+
+        if (!AmountParsing.TryParseMoney(text, out var parsed))
+        {
+            ErrorMessage = invalidMessage;
+            return false;
+        }
+
+        value = parsed;
+        return true;
     }
 
     [RelayCommand]
@@ -202,19 +373,29 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
             Accounts = [];
             Reminders = [];
             Documents = [];
+            OwnerOptions = [new(Guid.Empty, "Not assigned")];
             Institution = string.Empty;
             Nickname = string.Empty;
             MaximumBalance = string.Empty;
             YearEndBalance = string.Empty;
             ReportingRate = string.Empty;
+            UsdEquivalent = string.Empty;
             DocumentTitle = string.Empty;
             StatusMessage = null;
             ErrorMessage = null;
+            SelectedRecordId = null;
+            DismissEditor();
             Notify();
             return;
         }
 
         var document = _session.Document;
+        OwnerOptions =
+        [
+            new(Guid.Empty, "Not assigned"),
+            .. document.Members.Select(member => new ChoiceOption<Guid>(member.Id, member.Name))
+        ];
+
         Accounts = document.ForeignAccounts
             .Select(account => new ForeignAccountRow(
                 account.Id,
@@ -222,8 +403,10 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
                 account.Country,
                 account.Nickname,
                 account.Currency,
-                (account.MaximumCalendarYearBalance ?? account.UsdEquivalent)?.ToDisplayString() ?? "Not recorded",
-                account.ReviewStatus.ToString()))
+                (account.YearEndBalance ?? account.MaximumCalendarYearBalance ?? account.UsdEquivalent)?.ToDisplayString()
+                    ?? "Not recorded",
+                account.ClosedOn is null ? account.ReviewStatus.ToString() : "Archived",
+                account.Id == SelectedRecordId))
             .ToList();
 
         Reminders = ForeignReportingLibrary
@@ -237,10 +420,21 @@ public sealed partial class ForeignAccountsViewModel : PageViewModel
         Notify();
     }
 
+    private void RematchSelection()
+    {
+        Accounts = Accounts
+            .Select(item => item with { IsSelected = item.Id == SelectedRecordId })
+            .ToList();
+        OnPropertyChanged(nameof(Accounts));
+        OnPropertyChanged(nameof(HasAccounts));
+    }
+
     private void Notify()
     {
         OnPropertyChanged(nameof(Accounts));
         OnPropertyChanged(nameof(Reminders));
         OnPropertyChanged(nameof(Documents));
+        OnPropertyChanged(nameof(OwnerOptions));
+        OnPropertyChanged(nameof(HasAccounts));
     }
 }
