@@ -53,6 +53,16 @@
         </Setter>
     </Style>
 
+    <Style x:Key="NavGroupHeader" TargetType="Expander">
+        <Setter Property="Foreground" Value="{StaticResource Brush.TextSecondary}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Margin" Value="12,10,12,2"/>
+        <Setter Property="IsExpanded" Value="True"/>
+        <Setter Property="ExpandDirection" Value="Down"/>
+    </Style>
+
     <Style x:Key="LockButton" TargetType="Button">
         <Setter Property="Foreground" Value="{StaticResource Brush.Accent}"/>
         <Setter Property="Background" Value="Transparent"/>

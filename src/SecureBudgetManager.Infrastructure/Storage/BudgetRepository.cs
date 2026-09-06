@@ -804,6 +804,14 @@ public sealed class BudgetRepository : IBudgetRepository
                 DueDateAdjustment = SqliteValues.GetEnum<DueDateAdjustment>(reader, "due_date_adjustment"),
                 EndsOn = SqliteValues.GetNullableDate(reader, "ends_on"),
                 Notes = SqliteValues.GetNullableString(reader, "notes"),
+                Coverage = SqliteValues.GetEnumOrDefault(reader, "coverage", HouseholdCostCoverage.HouseholdPays),
+                CoverageConfirmed = SqliteValues.GetBoolOrDefault(reader, "coverage_confirmed", false),
+                CoveredByExplanation = SqliteValues.GetNullableString(reader, "covered_by_explanation"),
+                CoveredByExpenseId = SqliteValues.GetNullableGuid(reader, "covered_by_expense_id"),
+                OriginatedAsSuggestion = SqliteValues.GetBoolOrDefault(reader, "originated_as_suggestion", false),
+                SuggestionSource = SqliteValues.GetNullableString(reader, "suggestion_source"),
+                SuggestionEffectiveDate = SqliteValues.GetNullableDate(reader, "suggestion_effective_date"),
+                AmountKind = SqliteValues.GetEnumOrDefault(reader, "amount_kind", SuggestionAmountKind.UserDefined),
                 AnnualIncreasePercent = SqliteValues.GetDecimal(reader, "annual_increase_percent")
             });
         }
@@ -852,12 +860,16 @@ public sealed class BudgetRepository : IBudgetRepository
                     id, name, category_name, category_is_built_in, expected_amount, frequency,
                     anchor_due_date, necessity, variability, ownership, assignment, split_method,
                     autopay_anchor_date, is_paused, due_date_unknown, schedule_confirmed, is_archived, due_date_adjustment,
-                    ends_on, notes, annual_increase_percent)
+                    ends_on, notes, coverage, coverage_confirmed, covered_by_explanation, covered_by_expense_id,
+                    originated_as_suggestion, suggestion_source, suggestion_effective_date, amount_kind,
+                    annual_increase_percent)
                 VALUES (
                     $id, $name, $category, $builtIn, $amount, $frequency,
                     $anchor, $necessity, $variability, $ownership, $assignment, $splitMethod,
                     $autopay, $paused, $dueUnknown, $scheduleConfirmed, $archived, $adjustment,
-                    $ends, $notes, $increase);
+                    $ends, $notes, $coverage, $coverageConfirmed, $coveredBy, $coveredByExpense,
+                    $suggested, $suggestionSource, $suggestionDate, $amountKind,
+                    $increase);
                 """))
             {
                 command.Parameters.AddWithValue("$id", SqliteValues.ToText(expense.Id));
@@ -882,6 +894,14 @@ public sealed class BudgetRepository : IBudgetRepository
                 command.Parameters.AddWithValue("$adjustment", (int)expense.DueDateAdjustment);
                 command.Parameters.AddWithValue("$ends", SqliteValues.ToNullable(expense.EndsOn));
                 command.Parameters.AddWithValue("$notes", SqliteValues.ToNullable(expense.Notes));
+                command.Parameters.AddWithValue("$coverage", (int)expense.Coverage);
+                command.Parameters.AddWithValue("$coverageConfirmed", expense.CoverageConfirmed ? 1 : 0);
+                command.Parameters.AddWithValue("$coveredBy", SqliteValues.ToNullable(expense.CoveredByExplanation));
+                command.Parameters.AddWithValue("$coveredByExpense", SqliteValues.ToNullable(expense.CoveredByExpenseId));
+                command.Parameters.AddWithValue("$suggested", expense.OriginatedAsSuggestion ? 1 : 0);
+                command.Parameters.AddWithValue("$suggestionSource", SqliteValues.ToNullable(expense.SuggestionSource));
+                command.Parameters.AddWithValue("$suggestionDate", SqliteValues.ToNullable(expense.SuggestionEffectiveDate));
+                command.Parameters.AddWithValue("$amountKind", (int)expense.AmountKind);
                 command.Parameters.AddWithValue("$increase", SqliteValues.ToText(expense.AnnualIncreasePercent));
                 command.ExecuteNonQuery();
             }

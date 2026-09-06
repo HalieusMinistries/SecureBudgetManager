@@ -50,153 +50,52 @@
                               VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled">
                     <StackPanel KeyboardNavigation.TabNavigation="Local">
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Dashboard"
-                                     Tag="&#xEA37;"
-                                     AutomationProperties.Name="Dashboard page"
-                                     Command="{Binding NavigateToDashboardCommand}"
-                                     IsChecked="{Binding IsDashboardSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="This Week"
-                                     Tag="&#xE787;"
-                                     AutomationProperties.Name="This week guidance page"
-                                     Command="{Binding NavigateToThisWeekCommand}"
-                                     IsChecked="{Binding IsThisWeekSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Bills &amp; Reservations"
-                                     Tag="&#xE9D2;"
-                                     AutomationProperties.Name="Bills and reservations page"
-                                     Command="{Binding NavigateToAllocationsCommand}"
-                                     IsChecked="{Binding IsAllocationsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Grocery Plan"
-                                     Tag="&#xE8EC;"
-                                     AutomationProperties.Name="Grocery plan page"
-                                     Command="{Binding NavigateToGroceryCommand}"
-                                     IsChecked="{Binding IsGrocerySelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Household"
-                                     Tag="&#xE77B;"
-                                     AutomationProperties.Name="Household page"
-                                     Command="{Binding NavigateToHouseholdCommand}"
-                                     IsChecked="{Binding IsHouseholdSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Income"
-                                     Tag="&#xE8C7;"
-                                     AutomationProperties.Name="Income page"
-                                     Command="{Binding NavigateToIncomeCommand}"
-                                     IsChecked="{Binding IsIncomeSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Expenses"
-                                     Tag="&#xE8C8;"
-                                     AutomationProperties.Name="Expenses page"
-                                     Command="{Binding NavigateToExpensesCommand}"
-                                     IsChecked="{Binding IsExpensesSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Payroll"
-                                     Tag="&#xE8A5;"
-                                     AutomationProperties.Name="Payroll deductions and benefits page"
-                                     Command="{Binding NavigateToPayrollCommand}"
-                                     IsChecked="{Binding IsPayrollSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Benefits"
-                                     Tag="&#xE95E;"
-                                     AutomationProperties.Name="Benefits section on the payroll page"
-                                     Command="{Binding NavigateToBenefitsCommand}"
-                                     IsChecked="{Binding IsBenefitsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Cash Flow"
-                                     Tag="&#xE9D2;"
-                                     AutomationProperties.Name="Cash Flow page"
-                                     Command="{Binding NavigateToCashFlowCommand}"
-                                     IsChecked="{Binding IsCashFlowSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Planning"
-                                     Tag="&#xE8EF;"
-                                     AutomationProperties.Name="Planning Centre page"
-                                     Command="{Binding NavigateToPlanningCommand}"
-                                     IsChecked="{Binding IsPlanningSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Debt"
-                                     Tag="&#xE8C9;"
-                                     AutomationProperties.Name="Debt payoff page"
-                                     Command="{Binding NavigateToDebtCommand}"
-                                     IsChecked="{Binding IsDebtSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Savings and Sinking Funds"
-                                     Tag="&#xE825;"
-                                     AutomationProperties.Name="Savings and sinking funds page"
-                                     Command="{Binding NavigateToSavingsCommand}"
-                                     IsChecked="{Binding IsSavingsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Actuals"
-                                     Tag="&#xE9D5;"
-                                     AutomationProperties.Name="Actual balances and transactions page"
-                                     Command="{Binding NavigateToActualsCommand}"
-                                     IsChecked="{Binding IsActualsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Local Guidance"
-                                     Tag="&#xE909;"
-                                     AutomationProperties.Name="Utah and local cost guidance page"
-                                     Command="{Binding NavigateToLocalGuidanceCommand}"
-                                     IsChecked="{Binding IsLocalGuidanceSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Allocation Rules"
-                                     Tag="&#xE8F1;"
-                                     AutomationProperties.Name="Allocation rules page"
-                                     Command="{Binding NavigateToAllocationRulesCommand}"
-                                     IsChecked="{Binding IsAllocationRulesSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Products and Prices"
-                                     Tag="&#xE719;"
-                                     AutomationProperties.Name="Products and prices page"
-                                     Command="{Binding NavigateToProductsCommand}"
-                                     IsChecked="{Binding IsProductsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="International Transfers"
-                                     Tag="&#xE8C8;"
-                                     AutomationProperties.Name="International transfers page"
-                                     Command="{Binding NavigateToInternationalTransfersCommand}"
-                                     IsChecked="{Binding IsInternationalTransfersSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Foreign Accounts"
-                                     Tag="&#xE8D7;"
-                                     AutomationProperties.Name="Foreign accounts page"
-                                     Command="{Binding NavigateToForeignAccountsCommand}"
-                                     IsChecked="{Binding IsForeignAccountsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Settings"
-                                     Tag="&#xE713;"
-                                     AutomationProperties.Name="Settings page"
-                                     Command="{Binding NavigateToSettingsCommand}"
-                                     IsChecked="{Binding IsSettingsSelected, Mode=OneWay}"/>
-                        <RadioButton Style="{StaticResource NavRadioButton}"
-                                     GroupName="MainNavigation"
-                                     Content="Help and About"
-                                     Tag="&#xE897;"
-                                     AutomationProperties.Name="Help and about page"
-                                     Command="{Binding NavigateToHelpCommand}"
-                                     IsChecked="{Binding IsHelpSelected, Mode=OneWay}"/>
+                        <TextBlock Margin="16,4,16,8"
+                                   Foreground="{StaticResource Brush.TextSecondary}"
+                                   FontSize="11"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding SetupProgressText}"/>
+                        <Button Style="{StaticResource SecondaryButton}"
+                                Margin="16,0,16,8"
+                                Content="Create our suggested starting budget"
+                                Command="{Binding CreateSuggestedBudgetCommand}"
+                                AutomationProperties.Name="Create our suggested starting budget"/>
+                        <Expander Style="{StaticResource NavGroupHeader}" Header="SET UP YOUR BUDGET"
+                                  AutomationProperties.Name="Set up your budget">
+                            <StackPanel>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="1. Household" Tag="&#xE77B;" AutomationProperties.Name="Household page" Command="{Binding NavigateToHouseholdCommand}" IsChecked="{Binding IsHouseholdSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="2. Income" Tag="&#xE8C7;" AutomationProperties.Name="Income page" Command="{Binding NavigateToIncomeCommand}" IsChecked="{Binding IsIncomeSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="3. Payroll" Tag="&#xE8A5;" AutomationProperties.Name="Payroll deductions and benefits page" Command="{Binding NavigateToPayrollCommand}" IsChecked="{Binding IsPayrollSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="4. Benefits" Tag="&#xE95E;" AutomationProperties.Name="Benefits section on the payroll page" Command="{Binding NavigateToBenefitsCommand}" IsChecked="{Binding IsBenefitsSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="5. Expenses" Tag="&#xE8C8;" AutomationProperties.Name="Expenses page" Command="{Binding NavigateToExpensesCommand}" IsChecked="{Binding IsExpensesSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="6. Grocery Plan" Tag="&#xE8EC;" AutomationProperties.Name="Grocery plan page" Command="{Binding NavigateToGroceryCommand}" IsChecked="{Binding IsGrocerySelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="7. Debt" Tag="&#xE8C9;" AutomationProperties.Name="Debt payoff page" Command="{Binding NavigateToDebtCommand}" IsChecked="{Binding IsDebtSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="8. Savings" Tag="&#xE825;" AutomationProperties.Name="Savings and sinking funds page" Command="{Binding NavigateToSavingsCommand}" IsChecked="{Binding IsSavingsSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="9. Allocation Rules" Tag="&#xE8F1;" AutomationProperties.Name="Allocation rules page" Command="{Binding NavigateToAllocationRulesCommand}" IsChecked="{Binding IsAllocationRulesSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="10. Bills &amp; Reservations" Tag="&#xE9D2;" AutomationProperties.Name="Bills and reservations page" Command="{Binding NavigateToAllocationsCommand}" IsChecked="{Binding IsAllocationsSelected, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Expander>
+                        <Expander Style="{StaticResource NavGroupHeader}" Header="USE YOUR BUDGET"
+                                  AutomationProperties.Name="Use your budget">
+                            <StackPanel>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="This Week" Tag="&#xE787;" AutomationProperties.Name="This week guidance page" Command="{Binding NavigateToThisWeekCommand}" IsChecked="{Binding IsThisWeekSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Dashboard" Tag="&#xEA37;" AutomationProperties.Name="Dashboard page" Command="{Binding NavigateToDashboardCommand}" IsChecked="{Binding IsDashboardSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Cash Flow" Tag="&#xE9D2;" AutomationProperties.Name="Cash Flow page" Command="{Binding NavigateToCashFlowCommand}" IsChecked="{Binding IsCashFlowSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Actuals" Tag="&#xE9D5;" AutomationProperties.Name="Actual balances and transactions page" Command="{Binding NavigateToActualsCommand}" IsChecked="{Binding IsActualsSelected, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Expander>
+                        <Expander Style="{StaticResource NavGroupHeader}" Header="PLAN AND REFERENCE"
+                                  AutomationProperties.Name="Plan and reference">
+                            <StackPanel>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Planning" Tag="&#xE8EF;" AutomationProperties.Name="Planning Centre page" Command="{Binding NavigateToPlanningCommand}" IsChecked="{Binding IsPlanningSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Products" Tag="&#xE719;" AutomationProperties.Name="Products and prices page" Command="{Binding NavigateToProductsCommand}" IsChecked="{Binding IsProductsSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Local Guidance" Tag="&#xE909;" AutomationProperties.Name="Utah and local cost guidance page" Command="{Binding NavigateToLocalGuidanceCommand}" IsChecked="{Binding IsLocalGuidanceSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="International Transfers" Tag="&#xE8C8;" AutomationProperties.Name="International transfers page" Command="{Binding NavigateToInternationalTransfersCommand}" IsChecked="{Binding IsInternationalTransfersSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Foreign Accounts" Tag="&#xE8D7;" AutomationProperties.Name="Foreign accounts page" Command="{Binding NavigateToForeignAccountsCommand}" IsChecked="{Binding IsForeignAccountsSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Settings" Tag="&#xE713;" AutomationProperties.Name="Settings page" Command="{Binding NavigateToSettingsCommand}" IsChecked="{Binding IsSettingsSelected, Mode=OneWay}"/>
+                                <RadioButton Style="{StaticResource NavRadioButton}" GroupName="MainNavigation" Content="Help" Tag="&#xE897;" AutomationProperties.Name="Help and about page" Command="{Binding NavigateToHelpCommand}" IsChecked="{Binding IsHelpSelected, Mode=OneWay}"/>
+                            </StackPanel>
+                        </Expander>
                     </StackPanel>
                 </ScrollViewer>
 

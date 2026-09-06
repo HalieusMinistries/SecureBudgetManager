@@ -126,7 +126,8 @@ public sealed record ObligationRegister
             seen.Add(planned.Obligation.Id);
         }
 
-        foreach (var expense in document.Expenses.Where(expense => !expense.IsArchived && !expense.IsPaused))
+        foreach (var expense in document.Expenses.Where(expense =>
+                     !expense.IsArchived && !expense.IsPaused && ExpenseCoverage.CreatesHouseholdOutflow(expense)))
         {
             if (seen.Contains(expense.Id))
             {

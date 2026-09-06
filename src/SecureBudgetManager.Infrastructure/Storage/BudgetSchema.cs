@@ -775,7 +775,21 @@ public static class BudgetSchema
         new SchemaMigration(
             21,
             "Bill assignment so unassigned obligations are not auto-allocated",
-            "ALTER TABLE expense_item ADD COLUMN assignment INTEGER NOT NULL DEFAULT 0;")
+            "ALTER TABLE expense_item ADD COLUMN assignment INTEGER NOT NULL DEFAULT 0;"),
+
+        new SchemaMigration(
+            22,
+            "Covered costs and suggestion origin so conceptual zeros stay in the catalogue",
+            """
+            ALTER TABLE expense_item ADD COLUMN coverage INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE expense_item ADD COLUMN coverage_confirmed INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE expense_item ADD COLUMN covered_by_explanation TEXT;
+            ALTER TABLE expense_item ADD COLUMN covered_by_expense_id TEXT;
+            ALTER TABLE expense_item ADD COLUMN originated_as_suggestion INTEGER NOT NULL DEFAULT 0;
+            ALTER TABLE expense_item ADD COLUMN suggestion_source TEXT;
+            ALTER TABLE expense_item ADD COLUMN suggestion_effective_date TEXT;
+            ALTER TABLE expense_item ADD COLUMN amount_kind INTEGER NOT NULL DEFAULT 4;
+            """)
     ];
 
     public static int LatestVersion => Migrations.Count;

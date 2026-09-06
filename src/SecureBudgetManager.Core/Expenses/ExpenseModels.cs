@@ -114,8 +114,31 @@ public sealed record ExpenseItem
 
     public string? Notes { get; init; }
 
+    /// <summary>How this cost is paid, or why it creates no household outflow.</summary>
+    public HouseholdCostCoverage Coverage { get; init; } = HouseholdCostCoverage.HouseholdPays;
+
+    /// <summary>
+    /// True when the household chose the coverage. Unconfirmed parking and work-toll catalogue
+    /// names can still be treated as conceptual zeros.
+    /// </summary>
+    public bool CoverageConfirmed { get; init; }
+
+    public string? CoveredByExplanation { get; init; }
+
+    public Guid? CoveredByExpenseId { get; init; }
+
+    public bool OriginatedAsSuggestion { get; init; }
+
+    public string? SuggestionSource { get; init; }
+
+    public DateOnly? SuggestionEffectiveDate { get; init; }
+
+    public SuggestionAmountKind AmountKind { get; init; } = SuggestionAmountKind.UserDefined;
+
     /// <summary>Annual percentage increase applied when projecting more than a year ahead.</summary>
     public decimal AnnualIncreasePercent { get; init; }
+
+    public Money HouseholdResponsibility => ExpenseCoverage.HouseholdResponsibility(this);
 
     public Money AnnualCost => FrequencyConverter.ToAnnual(ExpectedAmount, Frequency);
 
@@ -148,7 +171,7 @@ public sealed record ExpenseItem
 
     public IEnumerable<DateOnly> DueDates(DateOnly from, DateOnly to)
     {
-        if (IsPaused || IsArchived || DueDateUnknown)
+        if (IsPaused || IsArchived || DueDateUnknown || !ExpenseCoverage.CreatesHouseholdOutflow(this))
         {
             return [];
         }

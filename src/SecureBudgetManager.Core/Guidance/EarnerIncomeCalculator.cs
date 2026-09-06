@@ -358,7 +358,8 @@ public static class EarnerIncomeCalculator
     {
         var total = Money.Zero;
 
-        foreach (var expense in document.Expenses.Where(item => !item.IsPaused && !item.IsArchived))
+        foreach (var expense in document.Expenses.Where(item =>
+                     !item.IsPaused && !item.IsArchived && ExpenseCoverage.CreatesHouseholdOutflow(item)))
         {
             if (BillAssignmentPlanner.IsUnassigned(expense)
                 || expense.Assignment == BillAssignment.SharedAccount
