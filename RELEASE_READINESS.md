@@ -1,6 +1,6 @@
 # Release readiness
 
-Version **1.0.3**. This table traces the supplied specification to the implemented programme. v1.0.3 standardises overlay saving, adds a reviewable suggested starting budget, treats covered costs as zero household outflow, and orders navigation by setup dependency. Stored household records from 1.0.2 remain in place except where the household later saves an editor, suggestion or coverage change.
+Version **1.0.4**. This table traces the supplied specification to the implemented programme. v1.0.4 is a hotfix so overlay editors render their forms. v1.0.3 standardises overlay saving, adds a reviewable suggested starting budget, treats covered costs as zero household outflow, and orders navigation by setup dependency. Stored household records remain in place except where the household later saves an editor, suggestion or coverage change.
 
 | Requirement | Implementation | Screen | Domain/application service | Persistence | Automated test | Programmatic verification | Manual verification | Final status | Limitation or external blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |

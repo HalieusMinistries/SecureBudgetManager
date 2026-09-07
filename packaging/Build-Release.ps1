@@ -38,14 +38,14 @@ if (-not $iscc) {
     if ($resolved) { $iscc = $resolved.Source }
 }
 
-$installer = Join-Path $distDir "SecureBudgetManager-1.0.3-win-x64.exe"
+$installer = Join-Path $distDir "SecureBudgetManager-1.0.4-win-x64.exe"
 if ($iscc) {
     Write-Host "Building Inno Setup installer..."
     & $iscc (Join-Path $PSScriptRoot "SecureBudgetManager.iss")
     if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed." }
 } else {
     Write-Host "Inno Setup is not installed. Creating a portable zip and PowerShell installer payload."
-    $zip = Join-Path $distDir "SecureBudgetManager-1.0.3-win-x64.zip"
+    $zip = Join-Path $distDir "SecureBudgetManager-1.0.4-win-x64.zip"
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $zip
     Copy-Item (Join-Path $PSScriptRoot "Install-SecureBudgetManager.ps1") (Join-Path $distDir "Install-SecureBudgetManager.ps1") -Force

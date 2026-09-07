@@ -10,9 +10,9 @@
     <AssemblyTitle>Secure Budget Manager</AssemblyTitle>
     <Description>Local-only household budget manager for Windows.</Description>
     <NeutralLanguage>en</NeutralLanguage>
-    <Version>1.0.3</Version>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3.0</FileVersion>
+    <Version>1.0.4</Version>
+    <AssemblyVersion>1.0.4.0</AssemblyVersion>
+    <FileVersion>1.0.4.0</FileVersion>
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>

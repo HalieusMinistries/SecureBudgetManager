@@ -189,6 +189,8 @@ public sealed partial class ExpensesViewModel : PageViewModel, IEditablePage
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowEmptyState))]
+    [NotifyPropertyChangedFor(nameof(IsExpenseEditor))]
+    [NotifyPropertyChangedFor(nameof(IsEditorContentReady))]
     [NotifyCanExecuteChangedFor(nameof(SaveEntryCommand))]
     private bool isEditorOpen;
 
@@ -253,6 +255,8 @@ public sealed partial class ExpensesViewModel : PageViewModel, IEditablePage
     [NotifyPropertyChangedFor(nameof(EditorTitle))]
     [NotifyPropertyChangedFor(nameof(EditorSaveLabel))]
     [NotifyPropertyChangedFor(nameof(IsExpenseEditor))]
+    [NotifyPropertyChangedFor(nameof(IsEditorContentReady))]
+    [NotifyCanExecuteChangedFor(nameof(SaveEntryCommand))]
     private bool isSuggestionEditor;
 
     [ObservableProperty]
@@ -260,6 +264,8 @@ public sealed partial class ExpensesViewModel : PageViewModel, IEditablePage
     private IncomeEstimate selectedScenario = IncomeEstimate.Conservative;
 
     public bool IsExpenseEditor => IsEditorOpen && !IsSuggestionEditor;
+
+    public bool IsEditorContentReady => IsEditorOpen && (IsExpenseEditor || IsSuggestionEditor);
 
     public string CoverageExplanation =>
         EditorCoverage switch
@@ -409,7 +415,7 @@ public sealed partial class ExpensesViewModel : PageViewModel, IEditablePage
         StatusMessage = "Expense saved";
     }
 
-    private bool CanSaveEntry() => _session.IsOpen && !_session.IsSaving && IsEditorOpen;
+    private bool CanSaveEntry() => _session.IsOpen && !_session.IsSaving && IsEditorContentReady;
 
     [RelayCommand]
     private void CancelEditor()

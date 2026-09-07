@@ -9,6 +9,12 @@ public interface IEditablePage
 {
     bool IsEditorOpen { get; }
 
+    /// <summary>
+    /// False when the overlay chrome is open but the editor form did not initialise.
+    /// Save must stay disabled in that state.
+    /// </summary>
+    bool IsEditorContentReady => IsEditorOpen;
+
     string EditorTitle { get; }
 
     string EditorSaveLabel { get; }

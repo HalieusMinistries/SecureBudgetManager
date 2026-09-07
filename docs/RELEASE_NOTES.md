@@ -1,3 +1,11 @@
+# Release notes — 1.0.4
+
+Hotfix for overlay editor content. Household records and tags v1.0.0–v1.0.3 remain unchanged.
+
+- Edit expense now shows the populated expense form immediately
+- Overlay editor forms are selected explicitly so application page templates cannot leave the dialog body blank
+- Save stays disabled until the editor form has initialised
+
 # Release notes — 1.0.3
 
 Operational usability and guided-budget release. Existing household records and earlier tags remain unchanged.

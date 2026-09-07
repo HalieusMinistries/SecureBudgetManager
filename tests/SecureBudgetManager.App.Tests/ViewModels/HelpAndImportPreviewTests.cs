@@ -11,7 +11,7 @@ public sealed class HelpAndImportPreviewTests
         var help = new HelpViewModel();
 
         Assert.Equal(FinanceGlossary.All.Count, help.Entries.Count);
-        Assert.Contains("1.0.3", help.VersionText, StringComparison.Ordinal);
+        Assert.Contains("1.0.4", help.VersionText, StringComparison.Ordinal);
         Assert.Contains("not encrypted", help.PrivacyNote, StringComparison.OrdinalIgnoreCase);
     }
 }
